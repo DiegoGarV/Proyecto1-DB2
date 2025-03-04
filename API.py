@@ -7,25 +7,55 @@ from neo4j import GraphDatabase
 from datetime import datetime
 from uuid import uuid4
 from typing import List, Optional
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
+
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Conexión a Neo4J
 try:
-    db = GraphDatabase.driver("neo4j+s://7adc3091.databases.neo4j.io", auth=("neo4j", "5kysW0wqPUqzVEBzo7SdkQs9bEg62NgEfYfwITRmP9E"))
+    db = GraphDatabase.driver(
+        "neo4j+s://7adc3091.databases.neo4j.io",
+        auth=("neo4j", "5kysW0wqPUqzVEBzo7SdkQs9bEg62NgEfYfwITRmP9E"),
+    )
 except Exception as e:
     print(f"Error conectando a Neo4J: {e}")
+
 
 @app.get("/users")
 def get_users():
     try:
         with db.session() as session:
-            result = session.run("MATCH (u:Usuario) RETURN u.id AS id, u.nombre_usuario AS name, u.correo AS correo, u.contraseña AS contrasena, u.cursos_actuales AS cursos_actuales, u.cursos_llevados AS cursos_llevados, u.beca AS beca")
-            users = [{"id": record["id"], "name": record["name"], "correo": record["correo"], "contrasena": record["contrasena"], "cursos_actuales": record["cursos_actuales"], "cursos_llevados": record["cursos_llevados"], "beca": record["beca"]} for record in result]
+            result = session.run(
+                "MATCH (u:Usuario) RETURN u.id AS id, u.nombre_usuario AS name, u.correo AS correo, u.contraseña AS contrasena, u.cursos_actuales AS cursos_actuales, u.cursos_llevados AS cursos_llevados, u.beca AS beca"
+            )
+            users = [
+                {
+                    "id": record["id"],
+                    "name": record["name"],
+                    "correo": record["correo"],
+                    "contrasena": record["contrasena"],
+                    "cursos_actuales": record["cursos_actuales"],
+                    "cursos_llevados": record["cursos_llevados"],
+                    "beca": record["beca"],
+                }
+                for record in result
+            ]
         return {"usuarios": users}
     except Exception as e:
         return {"error": str(e)}
-    
+
+
 @app.get("/user/{user_id}")
 def get_user(user_id: int):
     try:
@@ -42,7 +72,7 @@ def get_user(user_id: int):
             """
             result = session.run(query, user_id=user_id)
             record = result.single()
-            
+
             if not record:
                 return {"error": "Usuario no encontrado"}
 
@@ -53,158 +83,309 @@ def get_user(user_id: int):
                 "contrasena": record["contrasena"],
                 "cursos_actuales": record["cursos_actuales"],
                 "cursos_llevados": record["cursos_llevados"],
-                "beca": record["beca"]
+                "beca": record["beca"],
             }
-            
+
         return {"usuario": user}
-    
+
     except Exception as e:
         return {"error": str(e)}
-    
+
+
 @app.get("/availablePosts")
 def get_available_posts():
     try:
         with db.session() as session:
-            result = session.run("MATCH (p:Post) WHERE p.status = 'TRUE' RETURN p.id AS id, p.título AS titulo, p.descripción AS descripcion, p.fecha AS fecha, p.adjuntos AS archivos, p.calificación AS calificacion")
-            posts = [{"id": record["id"], "titulo": record["titulo"], "descripcion": record["descripcion"], "fecha": record["fecha"], "archivos": record["archivos"], "calificacion": record["calificacion"]} for record in result]
+            result = session.run(
+                "MATCH (p:Post) WHERE p.status = 'TRUE' RETURN p.id AS id, p.título AS titulo, p.descripción AS descripcion, p.fecha AS fecha, p.adjuntos AS archivos, p.calificación AS calificacion"
+            )
+            posts = [
+                {
+                    "id": record["id"],
+                    "titulo": record["titulo"],
+                    "descripcion": record["descripcion"],
+                    "fecha": record["fecha"],
+                    "archivos": record["archivos"],
+                    "calificacion": record["calificacion"],
+                }
+                for record in result
+            ]
         return {"availablePosts": posts}
     except Exception as e:
         return {"error": str(e)}
-    
+
+
 @app.get("/hiddenPosts")
 def get_hidden_posts():
     try:
         with db.session() as session:
-            result = session.run("MATCH (p:Post) WHERE p.status = 'FALSE' RETURN p.id AS id, p.título AS titulo, p.descripción AS descripcion, p.fecha AS fecha, p.adjuntos AS archivos, p.calificación AS calificacion")
-            posts = [{"id": record["id"], "titulo": record["titulo"], "descripcion": record["descripcion"], "fecha": record["fecha"], "archivos": record["archivos"], "calificacion": record["calificacion"]} for record in result]
+            result = session.run(
+                "MATCH (p:Post) WHERE p.status = 'FALSE' RETURN p.id AS id, p.título AS titulo, p.descripción AS descripcion, p.fecha AS fecha, p.adjuntos AS archivos, p.calificación AS calificacion"
+            )
+            posts = [
+                {
+                    "id": record["id"],
+                    "titulo": record["titulo"],
+                    "descripcion": record["descripcion"],
+                    "fecha": record["fecha"],
+                    "archivos": record["archivos"],
+                    "calificacion": record["calificacion"],
+                }
+                for record in result
+            ]
         return {"hiddenPosts": posts}
     except Exception as e:
-        return {"error": str(e)}    
+        return {"error": str(e)}
+
 
 @app.get("/getPostComments/{post_id}")
 def get_post_comments(post_id: int):
     try:
         with db.session() as session:
-            result = session.run("""
+            result = session.run(
+                """
                 MATCH (p:Post)<-[:PERTENECE_A_POST]-(c:Comentario)
                 WHERE p.id = $post_id AND c.status = 'TRUE'
                 RETURN c.id AS id, c.contenido AS contenido, c.fecha AS fecha, c.likes AS likes
-            """, post_id=post_id)
-            
-            comments = [{"id": record["id"], "contenido": record["contenido"], "fecha": record["fecha"], "likes": record["likes"]} for record in result]
+            """,
+                post_id=post_id,
+            )
+
+            comments = [
+                {
+                    "id": record["id"],
+                    "contenido": record["contenido"],
+                    "fecha": record["fecha"],
+                    "likes": record["likes"],
+                }
+                for record in result
+            ]
         return {"comments": comments}
     except Exception as e:
         return {"error": str(e)}
+
 
 @app.get("/getCommentReplies/{comment_id}")
 def get_comment_replies(comment_id: int):
     try:
         with db.session() as session:
-            result = session.run("""
+            result = session.run(
+                """
                 MATCH (c:Comentario)-[:TIENE_RESPUESTA]->(r:Comentario)
                 WHERE c.id = $comment_id AND r.status = 'TRUE'
                 RETURN r.id AS id, r.contenido AS contenido, r.fecha AS fecha, r.likes AS likes
-            """, comment_id=comment_id)
-            
-            replies = [{"id": record["id"], "contenido": record["contenido"], "fecha": record["fecha"], "likes": record["likes"]} for record in result]
+            """,
+                comment_id=comment_id,
+            )
+
+            replies = [
+                {
+                    "id": record["id"],
+                    "contenido": record["contenido"],
+                    "fecha": record["fecha"],
+                    "likes": record["likes"],
+                }
+                for record in result
+            ]
         return {"replies": replies}
     except Exception as e:
         return {"error": str(e)}
-    
+
+
 @app.get("/clases")
 def get_clases():
     try:
         with db.session() as session:
-            result = session.run("MATCH (c:Clase) RETURN c.id AS id, c.nombre AS nombre, c.facultad AS facultad, c.catedráticos AS catedraticos, c.sección AS secciones")
-            clases = [{"id": record["id"], "nombre": record["nombre"], "facultad": record["facultad"], "catedraticos": record["catedraticos"], "secciones": record["secciones"]} for record in result]
+            result = session.run(
+                "MATCH (c:Clase) RETURN c.id AS id, c.nombre AS nombre, c.facultad AS facultad, c.catedráticos AS catedraticos, c.sección AS secciones"
+            )
+            clases = [
+                {
+                    "id": record["id"],
+                    "nombre": record["nombre"],
+                    "facultad": record["facultad"],
+                    "catedraticos": record["catedraticos"],
+                    "secciones": record["secciones"],
+                }
+                for record in result
+            ]
         return {"clases": clases}
     except Exception as e:
         return {"error": str(e)}
+
 
 @app.get("/comunidades")
 def get_comunidades():
     try:
         with db.session() as session:
-            result = session.run("MATCH (c:Comunidades) RETURN c.id AS id, c.título AS titulo, c.descripción AS descripcion, c.fecha AS fecha_creacion")
-            comunidades = [{"id": record["id"], "titulo": record["titulo"], "descripcion": record["descripcion"], "fecha_creacion": record["fecha_creacion"]} for record in result]
+            result = session.run(
+                "MATCH (c:Comunidades) RETURN c.id AS id, c.título AS titulo, c.descripción AS descripcion, c.fecha AS fecha_creacion"
+            )
+            comunidades = [
+                {
+                    "id": record["id"],
+                    "titulo": record["titulo"],
+                    "descripcion": record["descripcion"],
+                    "fecha_creacion": record["fecha_creacion"],
+                }
+                for record in result
+            ]
         return {"comunidades": comunidades}
     except Exception as e:
         return {"error": str(e)}
+
 
 @app.get("/recompensas")
 def get_recompensas():
     try:
         with db.session() as session:
-            result = session.run("MATCH (r:Recompensa) RETURN r.id AS id, r.tipo AS tipo, r.cantidad_puntos AS cantidad_puntos, r.caducidad AS caducidad, r.fecha_lanzamiento AS lanzamiento, r.descripcion AS descripcion")
-            recompensas = [{"id": record["id"], "tipo": record["tipo"], "cantidad_puntos": record["cantidad_puntos"], "lanzamiento": record["lanzamiento"], "caducidad": record["caducidad"], "descripcion": record["descripcion"]} for record in result]
+            result = session.run(
+                "MATCH (r:Recompensa) RETURN r.id AS id, r.tipo AS tipo, r.cantidad_puntos AS cantidad_puntos, r.caducidad AS caducidad, r.fecha_lanzamiento AS lanzamiento, r.descripcion AS descripcion"
+            )
+            recompensas = [
+                {
+                    "id": record["id"],
+                    "tipo": record["tipo"],
+                    "cantidad_puntos": record["cantidad_puntos"],
+                    "lanzamiento": record["lanzamiento"],
+                    "caducidad": record["caducidad"],
+                    "descripcion": record["descripcion"],
+                }
+                for record in result
+            ]
         return {"recompensas": recompensas}
     except Exception as e:
         return {"error": str(e)}
-    
+
+
 @app.get("/getFollowed/{user_id}")
 def get_followed(user_id: int):
     try:
         with db.session() as session:
-            result = session.run("""
+            result = session.run(
+                """
                 MATCH (u:Usuario)-[:SIGUE]->(f:Usuario)
                 WHERE u.id = $user_id
                 RETURN f.id AS id, f.nombre_usuario AS name, f.correo AS correo, f.cursos_actuales AS cursos_actuales, f.cursos_llevados AS cursos_llevados
-            """, user_id=user_id)
-            followed = [{"id": record["id"], "name": record["name"], "correo": record["correo"], "cursos_actuales": record["cursos_actuales"], "cursos_llevados": record["cursos_llevados"]} for record in result]
+            """,
+                user_id=user_id,
+            )
+            followed = [
+                {
+                    "id": record["id"],
+                    "name": record["name"],
+                    "correo": record["correo"],
+                    "cursos_actuales": record["cursos_actuales"],
+                    "cursos_llevados": record["cursos_llevados"],
+                }
+                for record in result
+            ]
         return {"followed": followed}
     except Exception as e:
         return {"error": str(e)}
-    
+
+
 @app.get("/getFollowers/{user_id}")
 def get_followers(user_id: int):
     try:
         with db.session() as session:
-            result = session.run("""
+            result = session.run(
+                """
                 MATCH (u:Usuario)<-[:SIGUE]-(f:Usuario)
                 WHERE u.id = $user_id
                 RETURN f.id AS id, f.nombre_usuario AS name, f.correo AS correo, f.cursos_actuales AS cursos_actuales, f.cursos_llevados AS cursos_llevados
-            """, user_id=user_id)
-            followers = [{"id": record["id"], "name": record["name"], "correo": record["correo"], "cursos_actuales": record["cursos_actuales"], "cursos_llevados": record["cursos_llevados"]} for record in result]
+            """,
+                user_id=user_id,
+            )
+            followers = [
+                {
+                    "id": record["id"],
+                    "name": record["name"],
+                    "correo": record["correo"],
+                    "cursos_actuales": record["cursos_actuales"],
+                    "cursos_llevados": record["cursos_llevados"],
+                }
+                for record in result
+            ]
         return {"followers": followers}
     except Exception as e:
         return {"error": str(e)}
-    
+
+
 @app.get("/postsInClass/{class_id}")
 def get_postsInClass(class_id: int):
     try:
         with db.session() as session:
-            result = session.run("""
+            result = session.run(
+                """
                 MATCH (p:Post)-[r:PERTENECE_CLASE]->(c:Clase)
                 WHERE c.id = $class_id AND p.status = 'TRUE' 
                 RETURN p.id AS id, p.título AS titulo, p.descripción AS descripcion, p.fecha AS fecha, p.adjuntos AS archivos, p.calificación AS calificacion, r.tipo AS examen
-            """, class_id=class_id)
-            posts = [{"id": record["id"], "titulo": record["titulo"], "descripcion": record["descripcion"], "fecha": record["fecha"], "archivos": record["archivos"], "calificacion": record["calificacion"], "examen": record["examen"]} for record in result]
+            """,
+                class_id=class_id,
+            )
+            posts = [
+                {
+                    "id": record["id"],
+                    "titulo": record["titulo"],
+                    "descripcion": record["descripcion"],
+                    "fecha": record["fecha"],
+                    "archivos": record["archivos"],
+                    "calificacion": record["calificacion"],
+                    "examen": record["examen"],
+                }
+                for record in result
+            ]
         return {"posts": posts}
     except Exception as e:
         return {"error": str(e)}
-    
+
+
 @app.get("/postsInCommunity/{community_id}")
 def get_postsInCommunity(community_id: int):
     try:
         with db.session() as session:
-            result = session.run("""
+            result = session.run(
+                """
                 MATCH (p:Post)-[:PERTENECE_COMUNIDAD]->(c:Comunidades)
                 WHERE c.id = $community_id AND p.status = 'TRUE' 
                 RETURN p.id AS id, p.título AS titulo, p.descripción AS descripcion, p.fecha AS fecha, p.adjuntos AS archivos, p.calificación AS calificacion
-            """, community_id=community_id)
-            posts = [{"id": record["id"], "titulo": record["titulo"], "descripcion": record["descripcion"], "fecha": record["fecha"], "archivos": record["archivos"], "calificacion": record["calificacion"]} for record in result]
+            """,
+                community_id=community_id,
+            )
+            posts = [
+                {
+                    "id": record["id"],
+                    "titulo": record["titulo"],
+                    "descripcion": record["descripcion"],
+                    "fecha": record["fecha"],
+                    "archivos": record["archivos"],
+                    "calificacion": record["calificacion"],
+                }
+                for record in result
+            ]
         return {"posts": posts}
     except Exception as e:
         return {"error": str(e)}
-    
+
+
 @app.post("/create_user")
-def create_user(cursos_llevados: List[str], cursos_actuales: List[str], correo: str, nombre_usuario: str, contraseña: str, beca: bool):
+def create_user(
+    cursos_llevados: List[str],
+    cursos_actuales: List[str],
+    correo: str,
+    nombre_usuario: str,
+    contraseña: str,
+    beca: bool,
+):
     try:
 
         user_id = int(str(uuid4().int)[:8], 16)
 
         with db.session() as session:
-            session.run("MATCH (counter:IDCounter) SET counter.id = $user_id", user_id=user_id)
+            session.run(
+                "MATCH (counter:IDCounter) SET counter.id = $user_id", user_id=user_id
+            )
         query = """
         CREATE (u:Usuario {
             id: $user_id,
@@ -218,14 +399,16 @@ def create_user(cursos_llevados: List[str], cursos_actuales: List[str], correo: 
         RETURN u
         """
         with db.session() as session:
-            result = session.run(query, 
-                                 user_id=user_id, 
-                                 cursos_llevados=cursos_llevados, 
-                                 cursos_actuales=cursos_actuales, 
-                                 correo=correo, 
-                                 nombre_usuario=nombre_usuario, 
-                                 contraseña=contraseña, 
-                                 beca=beca)
+            result = session.run(
+                query,
+                user_id=user_id,
+                cursos_llevados=cursos_llevados,
+                cursos_actuales=cursos_actuales,
+                correo=correo,
+                nombre_usuario=nombre_usuario,
+                contraseña=contraseña,
+                beca=beca,
+            )
             created_user = result.single()
 
         return {
@@ -236,15 +419,25 @@ def create_user(cursos_llevados: List[str], cursos_actuales: List[str], correo: 
                 "cursos_actuales": created_user["u"]["cursos_actuales"],
                 "correo": created_user["u"]["correo"],
                 "nombre_usuario": created_user["u"]["nombre_usuario"],
-                "beca": created_user["u"]["beca"]
-            }
+                "beca": created_user["u"]["beca"],
+            },
         }
 
     except Exception as e:
         return {"error": str(e)}
-    
+
+
 @app.post("/create_post")
-def create_post(user_id: int, titulo: str, descripcion: str, adjuntos: Optional[List[str]] = [], clase: Optional[str] = None, temas: Optional[List[str]] = [], examen: Optional[bool] = False, comunidad: Optional[int] = 0):
+def create_post(
+    user_id: int,
+    titulo: str,
+    descripcion: str,
+    adjuntos: Optional[List[str]] = [],
+    clase: Optional[str] = None,
+    temas: Optional[List[str]] = [],
+    examen: Optional[bool] = False,
+    comunidad: Optional[int] = 0,
+):
     try:
         post_id = int(str(uuid4().int)[:8], 16)
 
@@ -267,16 +460,18 @@ def create_post(user_id: int, titulo: str, descripcion: str, adjuntos: Optional[
         CREATE (u)-[r:PUBLICÓ]->(p)
         SET r.fecha = $fecha, r.dispositivo = 'celular', r.tipo = $tipo
         """
-        
+
         with db.session() as session:
-            result = session.run(query, 
-                                 post_id=post_id, 
-                                 fecha=fecha, 
-                                 titulo=titulo, 
-                                 descripcion=descripcion, 
-                                 adjuntos=adjuntos, 
-                                 user_id=user_id, 
-                                 tipo=tipo)
+            result = session.run(
+                query,
+                post_id=post_id,
+                fecha=fecha,
+                titulo=titulo,
+                descripcion=descripcion,
+                adjuntos=adjuntos,
+                user_id=user_id,
+                tipo=tipo,
+            )
 
             created_post = result.single()
 
@@ -288,7 +483,9 @@ def create_post(user_id: int, titulo: str, descripcion: str, adjuntos: Optional[
             RETURN c
             """
             with db.session() as session:
-                clase_result = session.run(clase_query, clase_normalizada=clase_normalizada)
+                clase_result = session.run(
+                    clase_query, clase_normalizada=clase_normalizada
+                )
                 clase_node = clase_result.single()
 
             if clase_node:
@@ -298,15 +495,17 @@ def create_post(user_id: int, titulo: str, descripcion: str, adjuntos: Optional[
                 SET r.fecha = Datetime($fecha), r.temas = $temas, r.examen = $examen
                 """
                 with db.session() as session:
-                    session.run(relacion_query, 
-                                post_id=post_id, 
-                                clase_id=clase_node["c"]["id"], 
-                                fecha=fecha, 
-                                temas=temas, 
-                                examen=examen)
+                    session.run(
+                        relacion_query,
+                        post_id=post_id,
+                        clase_id=clase_node["c"]["id"],
+                        fecha=fecha,
+                        temas=temas,
+                        examen=examen,
+                    )
             else:
                 return {"error": "La clase no se encontró."}
-            
+
         if comunidad:
             relacion_query = """
             MATCH (p:Post {id: $post_id}), (c:Comunidades {id: $comunidad})
@@ -314,9 +513,7 @@ def create_post(user_id: int, titulo: str, descripcion: str, adjuntos: Optional[
             SET r.existe = TRUE, r.forma_parte = TRUE, r.está = TRUE
             """
             with db.session() as session:
-                session.run(relacion_query, 
-                    post_id=post_id, 
-                    comunidad=comunidad)
+                session.run(relacion_query, post_id=post_id, comunidad=comunidad)
 
         return {
             "mensaje": "Post creado exitosamente",
@@ -327,20 +524,21 @@ def create_post(user_id: int, titulo: str, descripcion: str, adjuntos: Optional[
                 "descripcion": created_post["p"]["descripcion"],
                 "adjuntos": created_post["p"]["adjuntos"],
                 "calificacion": created_post["p"]["calificacion"],
-                "status": created_post["p"]["status"]
-            }
+                "status": created_post["p"]["status"],
+            },
         }
 
     except Exception as e:
         return {"error": str(e)}
-    
+
+
 @app.post("/create_comunidad")
 def create_comunidad(user_id: int, nombre: str, descripcion: str, visibilidad: bool):
     try:
         comunidad_id = int(str(uuid4().int)[:8], 16)
-        
+
         fecha_creacion = datetime.utcnow().isoformat()
-        
+
         query = """
         CREATE (c:Comunidades {
             id: $comunidad_id,
@@ -358,16 +556,18 @@ def create_comunidad(user_id: int, nombre: str, descripcion: str, visibilidad: b
         SET r2.fecha = $fecha_creacion, r2.rol = 'admin', r2.estado = 'activo'
         RETURN c
         """
-        
+
         with db.session() as session:
-            result = session.run(query, 
-                                 comunidad_id=comunidad_id, 
-                                 nombre=nombre, 
-                                 descripcion=descripcion, 
-                                 fecha_creacion=fecha_creacion, 
-                                 visibilidad=visibilidad, 
-                                 user_id=user_id)
-            
+            result = session.run(
+                query,
+                comunidad_id=comunidad_id,
+                nombre=nombre,
+                descripcion=descripcion,
+                fecha_creacion=fecha_creacion,
+                visibilidad=visibilidad,
+                user_id=user_id,
+            )
+
             created_comunidad = result.single()
 
         return {
@@ -378,15 +578,18 @@ def create_comunidad(user_id: int, nombre: str, descripcion: str, visibilidad: b
                 "descripcion": created_comunidad["c"]["descripcion"],
                 "fecha_creacion": created_comunidad["c"]["fecha_creacion"],
                 "visibilidad": created_comunidad["c"]["visibilidad"],
-                "status": created_comunidad["c"]["status"]
-            }
+                "status": created_comunidad["c"]["status"],
+            },
         }
 
     except Exception as e:
         return {"error": str(e)}
-    
+
+
 @app.post("/create_clase")
-def create_clase(nombre: str, facultad: str, catedraticos: List[str], seccion: List[str]):
+def create_clase(
+    nombre: str, facultad: str, catedraticos: List[str], seccion: List[str]
+):
     try:
         # Generar un id único automático para la clase
         clase_id = int(str(uuid4().int)[:8], 16)
@@ -405,12 +608,14 @@ def create_clase(nombre: str, facultad: str, catedraticos: List[str], seccion: L
 
         # Ejecutar el query
         with db.session() as session:
-            result = session.run(query, 
-                                 clase_id=clase_id, 
-                                 nombre=nombre, 
-                                 facultad=facultad, 
-                                 catedraticos=catedraticos, 
-                                 seccion=seccion)
+            result = session.run(
+                query,
+                clase_id=clase_id,
+                nombre=nombre,
+                facultad=facultad,
+                catedraticos=catedraticos,
+                seccion=seccion,
+            )
 
             created_clase = result.single()
 
@@ -421,15 +626,18 @@ def create_clase(nombre: str, facultad: str, catedraticos: List[str], seccion: L
                 "nombre": created_clase["c"]["nombre"],
                 "facultad": created_clase["c"]["facultad"],
                 "catedraticos": created_clase["c"]["catedraticos"],
-                "seccion": created_clase["c"]["seccion"]
-            }
+                "seccion": created_clase["c"]["seccion"],
+            },
         }
 
     except Exception as e:
         return {"error": str(e)}
-    
+
+
 @app.post("/create_recompensa")
-def create_recompensa(tipo: str, cantidad_puntos: int, caducidad: str, descripcion: str):
+def create_recompensa(
+    tipo: str, cantidad_puntos: int, caducidad: str, descripcion: str
+):
     try:
         recompensa_id = int(str(uuid4().int)[:8], 16)
 
@@ -449,13 +657,15 @@ def create_recompensa(tipo: str, cantidad_puntos: int, caducidad: str, descripci
 
         # Ejecutar el query
         with db.session() as session:
-            result = session.run(query, 
-                                 recompensa_id=recompensa_id, 
-                                 tipo=tipo, 
-                                 cantidad_puntos=cantidad_puntos, 
-                                 caducidad=caducidad, 
-                                 fecha_lanzamiento=fecha_lanzamiento, 
-                                 descripcion=descripcion)
+            result = session.run(
+                query,
+                recompensa_id=recompensa_id,
+                tipo=tipo,
+                cantidad_puntos=cantidad_puntos,
+                caducidad=caducidad,
+                fecha_lanzamiento=fecha_lanzamiento,
+                descripcion=descripcion,
+            )
 
             created_recompensa = result.single()
 
@@ -467,13 +677,14 @@ def create_recompensa(tipo: str, cantidad_puntos: int, caducidad: str, descripci
                 "cantidad_puntos": created_recompensa["r"]["cantidad_puntos"],
                 "caducidad": created_recompensa["r"]["caducidad"],
                 "fecha_lanzamiento": created_recompensa["r"]["fecha_lanzamiento"],
-                "descripcion": created_recompensa["r"]["descripcion"]
-            }
+                "descripcion": created_recompensa["r"]["descripcion"],
+            },
         }
 
     except Exception as e:
         return {"error": str(e)}
-    
+
+
 @app.post("/create_comentario")
 def create_comentario(user_id: int, post_id: int, contenido: str):
     try:
@@ -488,7 +699,11 @@ def create_comentario(user_id: int, post_id: int, contenido: str):
         """
         with db.session() as session:
             orden_result = session.run(orden_query, post_id=post_id).single()
-            orden_comentario = orden_result["total_comentarios"] + 1 if orden_result and "total_comentarios" in orden_result else 1
+            orden_comentario = (
+                orden_result["total_comentarios"] + 1
+                if orden_result and "total_comentarios" in orden_result
+                else 1
+            )
 
         # Crear el nodo Comentario y Post con sus relaciones
         query = """
@@ -509,20 +724,24 @@ def create_comentario(user_id: int, post_id: int, contenido: str):
         """
 
         with db.session() as session:
-            result = session.run(query, 
-                                 user_id=user_id, 
-                                 post_id=post_id, 
-                                 comentario_id=comentario_id, 
-                                 contenido=contenido, 
-                                 fecha=fecha, 
-                                 longitud=longitud, 
-                                 orden_comentario=orden_comentario)
+            result = session.run(
+                query,
+                user_id=user_id,
+                post_id=post_id,
+                comentario_id=comentario_id,
+                contenido=contenido,
+                fecha=fecha,
+                longitud=longitud,
+                orden_comentario=orden_comentario,
+            )
 
             created_comentario = result.single()
 
         # Validar si se creó el nodo
         if not created_comentario:
-            return {"error": "No se pudo crear el comentario. Verifica que el usuario y el post existan."}
+            return {
+                "error": "No se pudo crear el comentario. Verifica que el usuario y el post existan."
+            }
 
         return {
             "mensaje": "Comentario creado exitosamente",
@@ -531,13 +750,14 @@ def create_comentario(user_id: int, post_id: int, contenido: str):
                 "contenido": created_comentario["c"]["contenido"],
                 "likes": created_comentario["c"]["likes"],
                 "fecha": created_comentario["c"]["fecha"],
-                "status": created_comentario["c"]["status"]
-            }
+                "status": created_comentario["c"]["status"],
+            },
         }
 
     except Exception as e:
         return {"error": str(e)}
-    
+
+
 @app.post("/create_reply")
 def create_reply(user_id: int, comentario_post_id: int, contenido: str):
     try:
@@ -567,18 +787,22 @@ def create_reply(user_id: int, comentario_post_id: int, contenido: str):
         """
 
         with db.session() as session:
-            result = session.run(query, 
-                                 user_id=user_id, 
-                                 comentario_post_id=comentario_post_id, 
-                                 comentario_id=comentario_id, 
-                                 contenido=contenido, 
-                                 fecha=fecha, 
-                                 longitud=longitud)
+            result = session.run(
+                query,
+                user_id=user_id,
+                comentario_post_id=comentario_post_id,
+                comentario_id=comentario_id,
+                contenido=contenido,
+                fecha=fecha,
+                longitud=longitud,
+            )
 
             created_reply = result.single()
 
         if not created_reply:
-            return {"error": "No se pudo crear la respuesta. Verifica que el usuario y el comentario existan."}
+            return {
+                "error": "No se pudo crear la respuesta. Verifica que el usuario y el comentario existan."
+            }
 
         return {
             "mensaje": "Respuesta creada exitosamente",
@@ -587,13 +811,14 @@ def create_reply(user_id: int, comentario_post_id: int, contenido: str):
                 "contenido": created_reply["c"]["contenido"],
                 "likes": created_reply["c"]["likes"],
                 "fecha": created_reply["c"]["fecha"],
-                "status": created_reply["c"]["status"]
-            }
+                "status": created_reply["c"]["status"],
+            },
         }
 
     except Exception as e:
         return {"error": str(e)}
-    
+
+
 @app.post("/claim_reward/{user_id}/{reward_id}")
 def claim_reward(user_id: int, reward_id: int):
     try:
@@ -616,7 +841,9 @@ def claim_reward(user_id: int, reward_id: int):
                 return {"error": "Datos incompletos en el usuario o la recompensa"}
 
             if user_points < reward_points:
-                return {"error": "No tienes suficientes puntos para reclamar esta recompensa"}
+                return {
+                    "error": "No tienes suficientes puntos para reclamar esta recompensa"
+                }
 
             update_query = """
             MATCH (u:Usuario {id: $user_id})
@@ -632,16 +859,22 @@ def claim_reward(user_id: int, reward_id: int):
                 puntos_reclamo: $reward_points
             }]->(r)
             """
-            session.run(create_relation_query, 
-                        user_id=user_id, 
-                        reward_id=reward_id, 
-                        fecha=datetime.utcnow().isoformat(), 
-                        reward_points=reward_points)
+            session.run(
+                create_relation_query,
+                user_id=user_id,
+                reward_id=reward_id,
+                fecha=datetime.utcnow().isoformat(),
+                reward_points=reward_points,
+            )
 
-        return {"mensaje": "Recompensa reclamada con éxito", "puntos_restantes": user_points - reward_points}
+        return {
+            "mensaje": "Recompensa reclamada con éxito",
+            "puntos_restantes": user_points - reward_points,
+        }
 
     except Exception as e:
         return {"error": str(e)}
+
 
 @app.post("/follow_user")
 def follow_user(user_id: int, followed_id: int, notificacion: bool = True):
@@ -664,29 +897,34 @@ def follow_user(user_id: int, followed_id: int, notificacion: bool = True):
         """
 
         with db.session() as session:
-            result = session.run(query, 
-                                 user_id=user_id, 
-                                 followed_id=followed_id, 
-                                 fecha=fecha, 
-                                 notificacion=notificacion)
+            result = session.run(
+                query,
+                user_id=user_id,
+                followed_id=followed_id,
+                fecha=fecha,
+                notificacion=notificacion,
+            )
 
             created_follow = result.single()
 
         if not created_follow:
-            return {"error": "No se pudo seguir al usuario. Verifica que ambos usuarios existan."}
+            return {
+                "error": "No se pudo seguir al usuario. Verifica que ambos usuarios existan."
+            }
 
         return {
             "mensaje": "Usuario seguido exitosamente",
             "relacion": {
                 "fecha": fecha,
                 "notificacion": notificacion,
-                "mutuo": created_follow["r"]["mutuo"]
-            }
+                "mutuo": created_follow["r"]["mutuo"],
+            },
         }
 
     except Exception as e:
         return {"error": str(e)}
-    
+
+
 @app.delete("/delete_follow")
 def delete_follow(user_id: int, followed_id: int):
     try:
@@ -712,11 +950,12 @@ def delete_follow(user_id: int, followed_id: int):
 
         return {
             "mensaje": "Relación de seguimiento eliminada exitosamente",
-            "actualización": "Si el otro usuario seguía al primero, ahora ya no es mutuo."
+            "actualización": "Si el otro usuario seguía al primero, ahora ya no es mutuo.",
         }
 
     except Exception as e:
         return {"error": str(e)}
+
 
 @app.put("/edit_comment")
 def edit_comment(user_id: int, comment_id: int, nuevo_contenido: str):
@@ -740,11 +979,13 @@ def edit_comment(user_id: int, comment_id: int, nuevo_contenido: str):
         """
 
         with db.session() as session:
-            result = session.run(query, 
-                                 user_id=user_id, 
-                                 comment_id=comment_id, 
-                                 fecha_edicion=fecha_edicion, 
-                                 nuevo_contenido=nuevo_contenido)
+            result = session.run(
+                query,
+                user_id=user_id,
+                comment_id=comment_id,
+                fecha_edicion=fecha_edicion,
+                nuevo_contenido=nuevo_contenido,
+            )
 
             updated_comment = result.single()
 
@@ -753,25 +994,26 @@ def edit_comment(user_id: int, comment_id: int, nuevo_contenido: str):
 
         return {
             "mensaje": "Comentario editado exitosamente",
-            "comentario": {
-                "id": comment_id,
-                "nuevo_contenido": nuevo_contenido
-            },
+            "comentario": {"id": comment_id, "nuevo_contenido": nuevo_contenido},
             "relación_editó": {
                 "fecha_edición": fecha_edicion,
-                "versión": updated_comment["new_r"]["version"]
+                "versión": updated_comment["new_r"]["version"],
             },
-            "relación_creó_comentario": {
-                "editado": updated_comment["creo"]["editado"]
-            }
+            "relación_creó_comentario": {"editado": updated_comment["creo"]["editado"]},
         }
 
     except Exception as e:
         return {"error": str(e)}
 
+
 @app.put("/edit_post")
-def edit_post(user_id: int, post_id: int, nuevo_titulo: Optional[str] = None, 
-              nueva_descripcion: Optional[str] = None, nuevos_adjuntos: Optional[List[str]] = None):
+def edit_post(
+    user_id: int,
+    post_id: int,
+    nuevo_titulo: Optional[str] = None,
+    nueva_descripcion: Optional[str] = None,
+    nuevos_adjuntos: Optional[List[str]] = None,
+):
     try:
         fecha_edicion = datetime.utcnow().isoformat()
 
@@ -794,13 +1036,15 @@ def edit_post(user_id: int, post_id: int, nuevo_titulo: Optional[str] = None,
         """
 
         with db.session() as session:
-            result = session.run(query, 
-                                 user_id=user_id, 
-                                 post_id=post_id, 
-                                 fecha_edicion=fecha_edicion, 
-                                 nuevo_titulo=nuevo_titulo, 
-                                 nueva_descripcion=nueva_descripcion, 
-                                 nuevos_adjuntos=nuevos_adjuntos)
+            result = session.run(
+                query,
+                user_id=user_id,
+                post_id=post_id,
+                fecha_edicion=fecha_edicion,
+                nuevo_titulo=nuevo_titulo,
+                nueva_descripcion=nueva_descripcion,
+                nuevos_adjuntos=nuevos_adjuntos,
+            )
 
             updated_post = result.single()
 
@@ -811,19 +1055,30 @@ def edit_post(user_id: int, post_id: int, nuevo_titulo: Optional[str] = None,
             "mensaje": "Post editado exitosamente",
             "post": {
                 "id": post_id,
-                "nuevo_titulo": nuevo_titulo if nuevo_titulo else updated_post["p"]["titulo"],
-                "nueva_descripcion": nueva_descripcion if nueva_descripcion else updated_post["p"]["descripcion"],
-                "nuevos_adjuntos": nuevos_adjuntos if nuevos_adjuntos else updated_post["p"]["adjuntos"]
+                "nuevo_titulo": (
+                    nuevo_titulo if nuevo_titulo else updated_post["p"]["titulo"]
+                ),
+                "nueva_descripcion": (
+                    nueva_descripcion
+                    if nueva_descripcion
+                    else updated_post["p"]["descripcion"]
+                ),
+                "nuevos_adjuntos": (
+                    nuevos_adjuntos
+                    if nuevos_adjuntos
+                    else updated_post["p"]["adjuntos"]
+                ),
             },
             "relación_editó": {
                 "fecha_edición": fecha_edicion,
-                "versión": updated_post["new_r"]["version"]
-            }
+                "versión": updated_post["new_r"]["version"],
+            },
         }
 
     except Exception as e:
         return {"error": str(e)}
-    
+
+
 @app.post("/report_comment")
 def report_comment(user_id: int, comentario_id: int):
     try:
@@ -837,24 +1092,23 @@ def report_comment(user_id: int, comentario_id: int):
         """
 
         with db.session() as session:
-            result = session.run(query, 
-                                 user_id=user_id, 
-                                 comentario_id=comentario_id)
+            result = session.run(query, user_id=user_id, comentario_id=comentario_id)
 
             updated_relation = result.single()
 
         if not updated_relation:
-            return {"error": "No se pudo reportar el comentario. Verifica que el usuario y el comentario existan."}
+            return {
+                "error": "No se pudo reportar el comentario. Verifica que el usuario y el comentario existan."
+            }
 
         return {
             "mensaje": "Comentario reportado exitosamente",
-            "relacion": {
-                "reportó": True
-            }
+            "relacion": {"reportó": True},
         }
 
     except Exception as e:
         return {"error": str(e)}
+
 
 @app.post("/like_comment")
 def like_comment(user_id: int, comentario_id: int):
@@ -879,29 +1133,27 @@ def like_comment(user_id: int, comentario_id: int):
         """
 
         with db.session() as session:
-            result = session.run(query, 
-                                 user_id=user_id, 
-                                 comentario_id=comentario_id)
+            result = session.run(query, user_id=user_id, comentario_id=comentario_id)
 
             updated_relation = result.single()
 
         if not updated_relation:
-            return {"error": "No se pudo dar like al comentario. Verifica que el usuario y el comentario existan."}
+            return {
+                "error": "No se pudo dar like al comentario. Verifica que el usuario y el comentario existan."
+            }
 
         return {
             "mensaje": "Like agregado exitosamente",
             "comentario": {
                 "id": comentario_id,
-                "likes": updated_relation["c"]["likes"]
+                "likes": updated_relation["c"]["likes"],
             },
-            "usuario": {
-                "id": user_id,
-                "puntos": updated_relation["creator"]["puntos"]
-            }
+            "usuario": {"id": user_id, "puntos": updated_relation["creator"]["puntos"]},
         }
 
     except Exception as e:
         return {"error": str(e)}
+
 
 @app.post("/report_post")
 def report_post(user_id: int, post_id: int):
@@ -915,23 +1167,24 @@ def report_post(user_id: int, post_id: int):
         """
 
         with db.session() as session:
-            result = session.run(query, 
-                                 user_id=user_id, 
-                                 post_id=post_id)
+            result = session.run(query, user_id=user_id, post_id=post_id)
 
             interaction = result.single()
 
         if not interaction:
-            return {"error": "No se pudo reportar el post. Verifica que el usuario y el post existan."}
+            return {
+                "error": "No se pudo reportar el post. Verifica que el usuario y el post existan."
+            }
 
         return {
             "mensaje": "Post reportado exitosamente",
             "post_id": post_id,
-            "reportó": interaction["r"]["reportó"]
+            "reportó": interaction["r"]["reportó"],
         }
 
     except Exception as e:
         return {"error": str(e)}
+
 
 @app.post("/save_post")
 def save_post(user_id: int, post_id: int):
@@ -944,23 +1197,24 @@ def save_post(user_id: int, post_id: int):
         """
 
         with db.session() as session:
-            result = session.run(query, 
-                                 user_id=user_id, 
-                                 post_id=post_id)
+            result = session.run(query, user_id=user_id, post_id=post_id)
 
             interaction = result.single()
 
         if not interaction:
-            return {"error": "No se pudo guardar el post. Verifica que el usuario y el post existan."}
+            return {
+                "error": "No se pudo guardar el post. Verifica que el usuario y el post existan."
+            }
 
         return {
             "mensaje": "Post guardado exitosamente",
             "post_id": post_id,
-            "guardó": interaction["r"]["guardó"]
+            "guardó": interaction["r"]["guardó"],
         }
 
     except Exception as e:
         return {"error": str(e)}
+
 
 @app.post("/download_post")
 def download_post(user_id: int, post_id: int):
@@ -973,23 +1227,24 @@ def download_post(user_id: int, post_id: int):
         """
 
         with db.session() as session:
-            result = session.run(query, 
-                                 user_id=user_id, 
-                                 post_id=post_id)
+            result = session.run(query, user_id=user_id, post_id=post_id)
 
             interaction = result.single()
 
         if not interaction:
-            return {"error": "No se pudo descargar el post. Verifica que el usuario y el post existan."}
+            return {
+                "error": "No se pudo descargar el post. Verifica que el usuario y el post existan."
+            }
 
         return {
             "mensaje": "Post descargado exitosamente",
             "post_id": post_id,
-            "descargó": interaction["r"]["descargó"]
+            "descargó": interaction["r"]["descargó"],
         }
 
     except Exception as e:
         return {"error": str(e)}
+
 
 @app.post("/rate_post")
 def rate_post(user_id: int, post_id: int):
@@ -1034,25 +1289,26 @@ def rate_post(user_id: int, post_id: int):
         """
 
         with db.session() as session:
-            result = session.run(query, 
-                                 user_id=user_id, 
-                                 post_id=post_id)
+            result = session.run(query, user_id=user_id, post_id=post_id)
 
             interaction = result.single()
 
         if not interaction:
-            return {"error": "No se pudo calificar el post. Verifica que el usuario y el post existan."}
+            return {
+                "error": "No se pudo calificar el post. Verifica que el usuario y el post existan."
+            }
 
         return {
             "mensaje": "Post calificado exitosamente",
             "post_id": post_id,
             "calificación": interaction["r"]["calificó"],
             "promedio_calificación": interaction["p"]["calificacion"],
-            "puntos_usuario": interaction["creator"]["puntos"]
+            "puntos_usuario": interaction["creator"]["puntos"],
         }
 
     except Exception as e:
         return {"error": str(e)}
+
 
 @app.post("/join_community")
 def join_community(user_id: int, community_id: int):
@@ -1067,28 +1323,26 @@ def join_community(user_id: int, community_id: int):
         """
 
         with db.session() as session:
-            result = session.run(query, 
-                                 user_id=user_id, 
-                                 community_id=community_id, 
-                                 fecha=fecha)
+            result = session.run(
+                query, user_id=user_id, community_id=community_id, fecha=fecha
+            )
 
             created_relationship = result.single()
 
         if not created_relationship:
-            return {"error": "No se pudo unir a la comunidad. Verifica que el usuario y la comunidad existan."}
+            return {
+                "error": "No se pudo unir a la comunidad. Verifica que el usuario y la comunidad existan."
+            }
 
         return {
             "mensaje": "Usuario unido a la comunidad exitosamente",
-            "relacion": {
-                "fecha": fecha,
-                "rol": "participante",
-                "estado": "activo"
-            }
+            "relacion": {"fecha": fecha, "rol": "participante", "estado": "activo"},
         }
 
     except Exception as e:
         return {"error": str(e)}
-    
+
+
 @app.post("/report_community")
 def report_community(user_id: int, community_id: int):
     try:
@@ -1111,6 +1365,7 @@ def report_community(user_id: int, community_id: int):
 
     except Exception as e:
         return {"error": str(e)}
+
 
 @app.post("/search_community")
 def search_community(user_id: int, community_id: int):
@@ -1135,6 +1390,7 @@ def search_community(user_id: int, community_id: int):
     except Exception as e:
         return {"error": str(e)}
 
+
 @app.post("/leave_community")
 def leave_community(user_id: int, community_id: int):
     try:
@@ -1149,16 +1405,24 @@ def leave_community(user_id: int, community_id: int):
         """
 
         with db.session() as session:
-            result = session.run(query, user_id=user_id, community_id=community_id, fecha_abandono=fecha_abandono)
+            result = session.run(
+                query,
+                user_id=user_id,
+                community_id=community_id,
+                fecha_abandono=fecha_abandono,
+            )
             interaction = result.single()
 
         if not interaction:
-            return {"error": "No se pudo abandonar la comunidad. Verifica que el usuario esté en la comunidad."}
+            return {
+                "error": "No se pudo abandonar la comunidad. Verifica que el usuario esté en la comunidad."
+            }
 
         return {"mensaje": "Comunidad abandonada exitosamente."}
 
     except Exception as e:
         return {"error": str(e)}
+
 
 @app.delete("/delete_user")
 def delete_user(user_id: int):
@@ -1193,6 +1457,7 @@ def delete_user(user_id: int):
     except Exception as e:
         return {"error": str(e)}
 
+
 @app.delete("/delete_post")
 def delete_post(post_id: int, user_id: int):
     try:
@@ -1213,6 +1478,7 @@ def delete_post(post_id: int, user_id: int):
 
     except Exception as e:
         return {"error": str(e)}
+
 
 @app.delete("/delete_comment")
 def delete_comment(comment_id: int, user_id: int):
@@ -1235,6 +1501,7 @@ def delete_comment(comment_id: int, user_id: int):
     except Exception as e:
         return {"error": str(e)}
 
+
 @app.delete("/delete_mail/{user_id}")
 def delete_mail(user_id: int):
     try:
@@ -1249,10 +1516,11 @@ def delete_mail(user_id: int):
                 return {"error": "Usuario no encontrado"}
 
         return {"message": "Información personal eliminada correctamente"}
-    
+
     except Exception as e:
         return {"error": str(e)}
-    
+
+
 @app.delete("/remove_post_rating_and_points/{post_id}")
 def remove_post_rating_and_points(post_id: int):
     try:
@@ -1267,11 +1535,14 @@ def remove_post_rating_and_points(post_id: int):
             if result.peek() is None:
                 return {"error": "El post no tiene suficientes reportes o no existe"}
 
-        return {"message": "Calificación del post y puntos del autor eliminados debido a múltiples reportes"}
-    
+        return {
+            "message": "Calificación del post y puntos del autor eliminados debido a múltiples reportes"
+        }
+
     except Exception as e:
         return {"error": str(e)}
-    
+
+
 @app.delete("/remove_report/{user_id}/{comentario_id}")
 def remove_report(user_id: int, comentario_id: int):
     try:
@@ -1284,13 +1555,18 @@ def remove_report(user_id: int, comentario_id: int):
             """
             result = session.run(query, user_id=user_id, comentario_id=comentario_id)
             if result.peek() is None:
-                return {"error": "La propiedad 'reportó' no existe o el comentario no ha sido reportado por este usuario."}
+                return {
+                    "error": "La propiedad 'reportó' no existe o el comentario no ha sido reportado por este usuario."
+                }
 
-        return {"message": "La propiedad 'reportó' ha sido eliminada de la relación INTERACTUÓ_COMENTARIO."}
-    
+        return {
+            "message": "La propiedad 'reportó' ha sido eliminada de la relación INTERACTUÓ_COMENTARIO."
+        }
+
     except Exception as e:
         return {"error": str(e)}
-    
+
+
 @app.delete("/remove_like/{user_id}/{comentario_id}/{post_id}")
 def remove_like(user_id: int, comentario_id: int, post_id: int):
     try:
@@ -1309,12 +1585,12 @@ def remove_like(user_id: int, comentario_id: int, post_id: int):
             session.run(query1, user_id=user_id, comentario_id=comentario_id)
             session.run(query2, user_id=user_id, post_id=post_id)
 
-        return {"message": "Las propiedades de like y calificación han sido eliminadas de ambas relaciones."}
-    
+        return {
+            "message": "Las propiedades de like y calificación han sido eliminadas de ambas relaciones."
+        }
+
     except Exception as e:
         return {"error": str(e)}
 
 
-
 # Comando para ejecutar API: python -m uvicorn API:app --reload
-
