@@ -524,6 +524,10 @@ def create_reply(user_id: int, comentario_post_id: int, contenido: str):
 
         CREATE (cp)-[r2:TIENE_RESPUESTA]->(c)
         SET r2.fecha_respuesta = $fecha, r2.like_autor = FALSE, r2.ratio = FALSE
+
+        MERGE (u)-[r3:INTERACTUÓ_COMENTARIO]->(cp)
+        ON CREATE SET r3.reportó = FALSE, r3.likeo = FALSE, r3.respondió = TRUE
+        ON MATCH SET r3.respondió = TRUE
         RETURN c
         """
 
@@ -604,6 +608,583 @@ def claim_reward(user_id: int, reward_id: int):
     except Exception as e:
         return {"error": str(e)}
 
+@app.post("/follow_user")
+def follow_user(user_id: int, followed_id: int, notificacion: bool = True):
+    try:
+        fecha = datetime.utcnow().isoformat()
+
+        query = """
+        MATCH (u1:Usuario {id: $user_id}), (u2:Usuario {id: $followed_id})
+        MERGE (u1)-[r:SIGUE]->(u2)
+        ON CREATE SET r.fecha = datetime($fecha), r.notificacion = $notificacion
+
+        WITH u1, u2, r
+        OPTIONAL MATCH (u2)-[r2:SIGUE]->(u1)
+        
+        FOREACH (_ IN CASE WHEN r2 IS NOT NULL THEN [1] ELSE [] END |
+            SET r.mutuo = TRUE, r2.mutuo = TRUE
+        )
+
+        RETURN r, r2
+        """
+
+        with db.session() as session:
+            result = session.run(query, 
+                                 user_id=user_id, 
+                                 followed_id=followed_id, 
+                                 fecha=fecha, 
+                                 notificacion=notificacion)
+
+            created_follow = result.single()
+
+        if not created_follow:
+            return {"error": "No se pudo seguir al usuario. Verifica que ambos usuarios existan."}
+
+        return {
+            "mensaje": "Usuario seguido exitosamente",
+            "relacion": {
+                "fecha": fecha,
+                "notificacion": notificacion,
+                "mutuo": created_follow["r"]["mutuo"]
+            }
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
+    
+@app.delete("/delete_follow")
+def delete_follow(user_id: int, followed_id: int):
+    try:
+        query = """
+        MATCH (u1:Usuario {id: $user_id})-[r:SIGUE]->(u2:Usuario {id: $followed_id})
+        OPTIONAL MATCH (u2)-[r2:SIGUE]->(u1)
+        
+        DELETE r
+        
+        FOREACH (_ IN CASE WHEN r2 IS NOT NULL THEN [1] ELSE [] END |
+            SET r2.mutuo = FALSE
+        )
+
+        RETURN COUNT(r) AS deleted
+        """
+
+        with db.session() as session:
+            result = session.run(query, user_id=user_id, followed_id=followed_id)
+            deleted_count = result.single()["deleted"]
+
+        if deleted_count == 0:
+            return {"error": "No se encontró la relación de seguimiento."}
+
+        return {
+            "mensaje": "Relación de seguimiento eliminada exitosamente",
+            "actualización": "Si el otro usuario seguía al primero, ahora ya no es mutuo."
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.put("/edit_comment")
+def edit_comment(user_id: int, comment_id: int, nuevo_contenido: str):
+    try:
+        fecha_edicion = datetime.utcnow().isoformat()
+
+        query = """
+        MATCH (u:Usuario {id: $user_id})-[creo:CREÓ_COMENTARIO]->(c:Comentario {id: $comment_id})
+        OPTIONAL MATCH (u)-[r:EDITÓ_COMENTARIO]->(c)
+        WITH u, c, creo, r, 
+             COALESCE(MAX(r.version), 0) + 1 AS nueva_version
+             
+        CREATE (u)-[new_r:EDITÓ_COMENTARIO]->(c)
+        SET new_r.fecha_edición = datetime($fecha_edicion),
+            new_r.texto_original = CASE WHEN r IS NULL THEN c.contenido ELSE r.texto_original END,
+            new_r.version = nueva_version
+
+        SET c.contenido = $nuevo_contenido
+        SET creo.editado = TRUE
+        RETURN c, new_r, creo
+        """
+
+        with db.session() as session:
+            result = session.run(query, 
+                                 user_id=user_id, 
+                                 comment_id=comment_id, 
+                                 fecha_edicion=fecha_edicion, 
+                                 nuevo_contenido=nuevo_contenido)
+
+            updated_comment = result.single()
+
+        if not updated_comment:
+            return {"error": "No se encontró el comentario o el usuario."}
+
+        return {
+            "mensaje": "Comentario editado exitosamente",
+            "comentario": {
+                "id": comment_id,
+                "nuevo_contenido": nuevo_contenido
+            },
+            "relación_editó": {
+                "fecha_edición": fecha_edicion,
+                "versión": updated_comment["new_r"]["version"]
+            },
+            "relación_creó_comentario": {
+                "editado": updated_comment["creo"]["editado"]
+            }
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.put("/edit_post")
+def edit_post(user_id: int, post_id: int, nuevo_titulo: Optional[str] = None, 
+              nueva_descripcion: Optional[str] = None, nuevos_adjuntos: Optional[List[str]] = None):
+    try:
+        fecha_edicion = datetime.utcnow().isoformat()
+
+        query = """
+        MATCH (u:Usuario {id: $user_id})-[pub:PUBLICÓ]->(p:Post {id: $post_id})
+        OPTIONAL MATCH (u)-[r:EDITÓ_POST]->(p)
+        WITH u, p, r, COALESCE(MAX(r.version), 0) + 1 AS nueva_version
+        
+        CREATE (u)-[new_r:EDITÓ_POST]->(p)
+        SET new_r.fecha_edición = datetime($fecha_edicion),
+            new_r.texto_original = CASE WHEN r IS NULL THEN 
+                                      'Título: ' + p.titulo + ' | Descripción: ' + p.descripcion 
+                                  ELSE r.texto_original END,
+            new_r.version = nueva_version
+        
+        SET p.titulo = COALESCE($nuevo_titulo, p.titulo),
+            p.descripcion = COALESCE($nueva_descripcion, p.descripcion),
+            p.adjuntos = COALESCE($nuevos_adjuntos, p.adjuntos)
+        RETURN p, new_r
+        """
+
+        with db.session() as session:
+            result = session.run(query, 
+                                 user_id=user_id, 
+                                 post_id=post_id, 
+                                 fecha_edicion=fecha_edicion, 
+                                 nuevo_titulo=nuevo_titulo, 
+                                 nueva_descripcion=nueva_descripcion, 
+                                 nuevos_adjuntos=nuevos_adjuntos)
+
+            updated_post = result.single()
+
+        if not updated_post:
+            return {"error": "No se encontró el post o el usuario."}
+
+        return {
+            "mensaje": "Post editado exitosamente",
+            "post": {
+                "id": post_id,
+                "nuevo_titulo": nuevo_titulo if nuevo_titulo else updated_post["p"]["titulo"],
+                "nueva_descripcion": nueva_descripcion if nueva_descripcion else updated_post["p"]["descripcion"],
+                "nuevos_adjuntos": nuevos_adjuntos if nuevos_adjuntos else updated_post["p"]["adjuntos"]
+            },
+            "relación_editó": {
+                "fecha_edición": fecha_edicion,
+                "versión": updated_post["new_r"]["version"]
+            }
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
+    
+@app.post("/report_comment")
+def report_comment(user_id: int, comentario_id: int):
+    try:
+
+        query = """
+        MATCH (u:Usuario {id: $user_id}), (c:Comentario {id: $comentario_id})
+        MERGE (u)-[r:INTERACTUÓ_COMENTARIO]->(c)
+        ON CREATE SET r.reportó = TRUE, r.likeo = FALSE, r.respondió = FALSE
+        ON MATCH SET r.reportó = TRUE
+        RETURN r
+        """
+
+        with db.session() as session:
+            result = session.run(query, 
+                                 user_id=user_id, 
+                                 comentario_id=comentario_id)
+
+            updated_relation = result.single()
+
+        if not updated_relation:
+            return {"error": "No se pudo reportar el comentario. Verifica que el usuario y el comentario existan."}
+
+        return {
+            "mensaje": "Comentario reportado exitosamente",
+            "relacion": {
+                "reportó": True
+            }
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.post("/like_comment")
+def like_comment(user_id: int, comentario_id: int):
+    try:
+
+        query = """
+        MATCH (u:Usuario {id: $user_id}), (c:Comentario {id: $comentario_id})
+        MATCH (creator:Usuario)-[r2:CREÓ_COMENTARIO]->(c)
+        
+        // Crear o actualizar la relación INTERACTUÓ_COMENTARIO
+        MERGE (u)-[r:INTERACTUÓ_COMENTARIO]->(c)
+        ON CREATE SET r.likeo = TRUE, r.reportó = FALSE, r.respondió = FALSE
+        ON MATCH SET r.likeo = TRUE
+
+        // Incrementar el contador de likes en el comentario
+        SET c.likes = c.likes + 1
+
+        // Incrementar los puntos del creador del comentario
+        SET creator.puntos = COALESCE(creator.puntos, 0) + 100
+
+        RETURN r, c, creator
+        """
+
+        with db.session() as session:
+            result = session.run(query, 
+                                 user_id=user_id, 
+                                 comentario_id=comentario_id)
+
+            updated_relation = result.single()
+
+        if not updated_relation:
+            return {"error": "No se pudo dar like al comentario. Verifica que el usuario y el comentario existan."}
+
+        return {
+            "mensaje": "Like agregado exitosamente",
+            "comentario": {
+                "id": comentario_id,
+                "likes": updated_relation["c"]["likes"]
+            },
+            "usuario": {
+                "id": user_id,
+                "puntos": updated_relation["creator"]["puntos"]
+            }
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.post("/report_post")
+def report_post(user_id: int, post_id: int):
+    try:
+
+        query = """
+        MATCH (u:Usuario {id: $user_id}), (p:Post {id: $post_id})
+        MERGE (u)-[r:INTERACTUÓ_POST]->(p)
+        SET r.reportó = TRUE
+        RETURN r, p
+        """
+
+        with db.session() as session:
+            result = session.run(query, 
+                                 user_id=user_id, 
+                                 post_id=post_id)
+
+            interaction = result.single()
+
+        if not interaction:
+            return {"error": "No se pudo reportar el post. Verifica que el usuario y el post existan."}
+
+        return {
+            "mensaje": "Post reportado exitosamente",
+            "post_id": post_id,
+            "reportó": interaction["r"]["reportó"]
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.post("/save_post")
+def save_post(user_id: int, post_id: int):
+    try:
+        query = """
+        MATCH (u:Usuario {id: $user_id}), (p:Post {id: $post_id})
+        MERGE (u)-[r:INTERACTUÓ_POST]->(p)
+        SET r.guardó = TRUE
+        RETURN r, p
+        """
+
+        with db.session() as session:
+            result = session.run(query, 
+                                 user_id=user_id, 
+                                 post_id=post_id)
+
+            interaction = result.single()
+
+        if not interaction:
+            return {"error": "No se pudo guardar el post. Verifica que el usuario y el post existan."}
+
+        return {
+            "mensaje": "Post guardado exitosamente",
+            "post_id": post_id,
+            "guardó": interaction["r"]["guardó"]
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.post("/download_post")
+def download_post(user_id: int, post_id: int):
+    try:
+        query = """
+        MATCH (u:Usuario {id: $user_id}), (p:Post {id: $post_id})
+        MERGE (u)-[r:INTERACTUÓ_POST]->(p)
+        SET r.descargó = TRUE
+        RETURN r, p
+        """
+
+        with db.session() as session:
+            result = session.run(query, 
+                                 user_id=user_id, 
+                                 post_id=post_id)
+
+            interaction = result.single()
+
+        if not interaction:
+            return {"error": "No se pudo descargar el post. Verifica que el usuario y el post existan."}
+
+        return {
+            "mensaje": "Post descargado exitosamente",
+            "post_id": post_id,
+            "descargó": interaction["r"]["descargó"]
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.post("/rate_post")
+def rate_post(user_id: int, post_id: int):
+    try:
+
+        queryf = """
+        MATCH (u:Usuario {id: $user_id}), (p:Post {id: $post_id})
+        MATCH (creator:Usuario)-[r2:PUBLICÓ]->(p)
+
+        // Crear o actualizar la relación INTERACTUÓ_POST
+        MERGE (u)-[r:INTERACTUÓ_POST]->(p)
+        ON CREATE SET r.calificó = TRUE
+        ON MATCH SET r.calificó = TRUE
+
+        // Actualizar los puntos del creador del post
+        SET creator.puntos = COALESCE(creator.puntos, 0) + ($calificacion * 1000)
+
+        // Calcular el promedio de las calificaciones para el post
+        WITH p, avg(r.calificó) AS avg_calif
+        SET p.calificacion = toInteger(avg_calif)
+
+        RETURN p, creator, r
+        """
+
+        query = """
+        MATCH (u:Usuario {id: $user_id}), (p:Post {id: $post_id})
+        MATCH (creator:Usuario)-[:PUBLICÓ]->(p)
+
+        // Crear o actualizar la relación INTERACTUÓ_COMENTARIO
+        MERGE (u)-[r:INTERACTUÓ_POST]->(p)
+        ON MATCH SET r.calificó = TRUE
+
+        // Incrementar el contador de likes en el comentario
+        SET p.calificacion = p.calificacion + 1
+
+        // Incrementar los puntos del creador del comentario
+        SET creator.puntos = COALESCE(creator.puntos, 0) + 500
+
+        RETURN r, p, creator
+        """
+
+        with db.session() as session:
+            result = session.run(query, 
+                                 user_id=user_id, 
+                                 post_id=post_id)
+
+            interaction = result.single()
+
+        if not interaction:
+            return {"error": "No se pudo calificar el post. Verifica que el usuario y el post existan."}
+
+        return {
+            "mensaje": "Post calificado exitosamente",
+            "post_id": post_id,
+            "calificación": interaction["r"]["calificó"],
+            "promedio_calificación": interaction["p"]["calificacion"],
+            "puntos_usuario": interaction["creator"]["puntos"]
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.post("/join_community")
+def join_community(user_id: int, community_id: int):
+    try:
+        fecha = datetime.utcnow().isoformat()
+
+        query = """
+        MATCH (u:Usuario {id: $user_id}), (c:Comunidades {id: $community_id})
+        MERGE (u)-[r:PERTENECE_A_COMUNIDAD]->(c)
+        ON CREATE SET r.fecha = datetime($fecha), r.rol = "participante", r.estado = "activo"
+        RETURN r
+        """
+
+        with db.session() as session:
+            result = session.run(query, 
+                                 user_id=user_id, 
+                                 community_id=community_id, 
+                                 fecha=fecha)
+
+            created_relationship = result.single()
+
+        if not created_relationship:
+            return {"error": "No se pudo unir a la comunidad. Verifica que el usuario y la comunidad existan."}
+
+        return {
+            "mensaje": "Usuario unido a la comunidad exitosamente",
+            "relacion": {
+                "fecha": fecha,
+                "rol": "participante",
+                "estado": "activo"
+            }
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
+    
+@app.post("/report_community")
+def report_community(user_id: int, community_id: int):
+    try:
+        query = """
+        MATCH (u:Usuario {id: $user_id}), (c:Comunidades {id: $community_id})
+        MERGE (u)-[r:INTERACTUÓ_COMUNIDAD]->(c)
+        ON CREATE SET r.reportó = TRUE, r.buscó = FALSE, r.abandonó = NULL
+        ON MATCH SET r.reportó = TRUE
+        RETURN r
+        """
+
+        with db.session() as session:
+            result = session.run(query, user_id=user_id, community_id=community_id)
+            interaction = result.single()
+
+        if not interaction:
+            return {"error": "No se pudo reportar la comunidad. Verifica los datos."}
+
+        return {"mensaje": "Comunidad reportada exitosamente."}
+
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.post("/search_community")
+def search_community(user_id: int, community_id: int):
+    try:
+        query = """
+        MATCH (u:Usuario {id: $user_id}), (c:Comunidades {id: $community_id})
+        MERGE (u)-[r:INTERACTUÓ_COMUNIDAD]->(c)
+        ON CREATE SET r.reportó = FALSE, r.buscó = TRUE, r.abandonó = NULL
+        ON MATCH SET r.buscó = TRUE
+        RETURN r
+        """
+
+        with db.session() as session:
+            result = session.run(query, user_id=user_id, community_id=community_id)
+            interaction = result.single()
+
+        if not interaction:
+            return {"error": "No se pudo registrar la búsqueda de la comunidad."}
+
+        return {"mensaje": "Búsqueda de comunidad registrada exitosamente."}
+
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.post("/leave_community")
+def leave_community(user_id: int, community_id: int):
+    try:
+        fecha_abandono = datetime.utcnow().isoformat()
+
+        query = """
+        MATCH (u:Usuario {id: $user_id})-[r:PERTENECE_A_COMUNIDAD]->(c:Comunidades {id: $community_id})
+        MATCH (u)-[i:INTERACTUÓ_COMUNIDAD]->(c)
+        SET i.abandonó = datetime($fecha_abandono)
+        DELETE r
+        RETURN i
+        """
+
+        with db.session() as session:
+            result = session.run(query, user_id=user_id, community_id=community_id, fecha_abandono=fecha_abandono)
+            interaction = result.single()
+
+        if not interaction:
+            return {"error": "No se pudo abandonar la comunidad. Verifica que el usuario esté en la comunidad."}
+
+        return {"mensaje": "Comunidad abandonada exitosamente."}
+
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.delete("/delete_user")
+def delete_user(user_id: int):
+    try:
+        query = """
+        MATCH (u:Usuario {id: $user_id})
+        DETACH DELETE u
+        RETURN COUNT(u) AS deleted_count
+        """
+
+        with db.session() as session:
+            result = session.run(query, user_id=user_id)
+            deleted_count = result.single()["deleted_count"]
+
+        if deleted_count == 0:
+            return {"error": "Usuario no encontrado."}
+
+        return {"mensaje": "Usuario eliminado exitosamente."}
+
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.delete("/delete_post")
+def delete_post(post_id: int, user_id: int):
+    try:
+        query = """
+        MATCH (p:Post {id: $post_id})<-[:PUBLICÓ]-(Usuario {id: $user_id})
+        DETACH DELETE p
+        RETURN COUNT(p) AS deleted_count
+        """
+
+        with db.session() as session:
+            result = session.run(query, post_id=post_id, user_id=user_id)
+            deleted_count = result.single()["deleted_count"]
+
+        if deleted_count == 0:
+            return {"error": "Post no encontrado."}
+
+        return {"mensaje": "Post eliminado exitosamente."}
+
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.delete("/delete_comment")
+def delete_comment(comment_id: int, user_id: int):
+    try:
+        query = """
+        MATCH (c:Comentario {id: $comment_id})<-[:CREÓ_COMENTARIO]-(Usuario {id: $user_id})
+        DETACH DELETE c
+        RETURN COUNT(c) AS deleted_count
+        """
+
+        with db.session() as session:
+            result = session.run(query, comment_id=comment_id, user_id=user_id)
+            deleted_count = result.single()["deleted_count"]
+
+        if deleted_count == 0:
+            return {"error": "Comentario no encontrado."}
+
+        return {"mensaje": "Comentario eliminado exitosamente."}
+
+    except Exception as e:
+        return {"error": str(e)}
 
 # Comando para ejecutar API: python -m uvicorn API:app --reload
 
