@@ -26,6 +26,41 @@ def get_users():
     except Exception as e:
         return {"error": str(e)}
     
+@app.get("/user/{user_id}")
+def get_user(user_id: int):
+    try:
+        with db.session() as session:
+            query = """
+            MATCH (u:Usuario {id: $user_id}) 
+            RETURN u.id AS id, 
+                   u.nombre_usuario AS name, 
+                   u.correo AS correo, 
+                   u.contraseña AS contrasena, 
+                   u.cursos_actuales AS cursos_actuales, 
+                   u.cursos_llevados AS cursos_llevados, 
+                   u.beca AS beca
+            """
+            result = session.run(query, user_id=user_id)
+            record = result.single()
+            
+            if not record:
+                return {"error": "Usuario no encontrado"}
+
+            user = {
+                "id": record["id"],
+                "name": record["name"],
+                "correo": record["correo"],
+                "contrasena": record["contrasena"],
+                "cursos_actuales": record["cursos_actuales"],
+                "cursos_llevados": record["cursos_llevados"],
+                "beca": record["beca"]
+            }
+            
+        return {"usuario": user}
+    
+    except Exception as e:
+        return {"error": str(e)}
+    
 @app.get("/availablePosts")
 def get_available_posts():
     try:
@@ -961,19 +996,21 @@ def rate_post(user_id: int, post_id: int):
     try:
 
         queryf = """
-        MATCH (u:Usuario {id: $user_id}), (p:Post {id: $post_id})
+        MATCH (u:Usuario {id: 306255506}), (p:Post {id: 544281184})
         MATCH (creator:Usuario)-[r2:PUBLICÓ]->(p)
 
         // Crear o actualizar la relación INTERACTUÓ_POST
+        WITH creator, p
         MERGE (u)-[r:INTERACTUÓ_POST]->(p)
         ON CREATE SET r.calificó = TRUE
         ON MATCH SET r.calificó = TRUE
 
         // Actualizar los puntos del creador del post
+        WITH creator, p, r
         SET creator.puntos = COALESCE(creator.puntos, 0) + ($calificacion * 1000)
 
         // Calcular el promedio de las calificaciones para el post
-        WITH p, avg(r.calificó) AS avg_calif
+        WITH p, avg(r.calificó) AS avg_calif, creator, r
         SET p.calificacion = toInteger(avg_calif)
 
         RETURN p, creator, r
@@ -1128,7 +1165,19 @@ def delete_user(user_id: int):
     try:
         query = """
         MATCH (u:Usuario {id: $user_id})
+
+        // Eliminar los posts que el usuario ha creado
+        OPTIONAL MATCH (u)-[:PUBLICÓ]->(p:Post)
+        DETACH DELETE p
+
+        // Eliminar los comentarios que el usuario ha creado
+        WITH u
+        OPTIONAL MATCH (u)-[:CREÓ_COMENTARIO]->(c:Comentario)
+        DETACH DELETE c
+
+        // Eliminar el nodo de usuario
         DETACH DELETE u
+
         RETURN COUNT(u) AS deleted_count
         """
 
@@ -1139,7 +1188,7 @@ def delete_user(user_id: int):
         if deleted_count == 0:
             return {"error": "Usuario no encontrado."}
 
-        return {"mensaje": "Usuario eliminado exitosamente."}
+        return {"mensaje": "Usuario y sus publicaciones eliminadas exitosamente."}
 
     except Exception as e:
         return {"error": str(e)}
@@ -1185,6 +1234,87 @@ def delete_comment(comment_id: int, user_id: int):
 
     except Exception as e:
         return {"error": str(e)}
+
+@app.delete("/delete_mail/{user_id}")
+def delete_mail(user_id: int):
+    try:
+        with db.session() as session:
+            query = """
+            MATCH (u:Usuario {id: $user_id})
+            REMOVE u.correo
+            RETURN u
+            """
+            result = session.run(query, user_id=user_id)
+            if result.peek() is None:
+                return {"error": "Usuario no encontrado"}
+
+        return {"message": "Información personal eliminada correctamente"}
+    
+    except Exception as e:
+        return {"error": str(e)}
+    
+@app.delete("/remove_post_rating_and_points/{post_id}")
+def remove_post_rating_and_points(post_id: int):
+    try:
+        with db.session() as session:
+            query = """
+            MATCH (p:Post {id: $post_id})<-[:PUBLICÓ]-(u:Usuario)
+            WHERE p.reportes > 5
+            REMOVE p.calificacion, u.puntos
+            RETURN p, u
+            """
+            result = session.run(query, post_id=post_id)
+            if result.peek() is None:
+                return {"error": "El post no tiene suficientes reportes o no existe"}
+
+        return {"message": "Calificación del post y puntos del autor eliminados debido a múltiples reportes"}
+    
+    except Exception as e:
+        return {"error": str(e)}
+    
+@app.delete("/remove_report/{user_id}/{comentario_id}")
+def remove_report(user_id: int, comentario_id: int):
+    try:
+        with db.session() as session:
+            query = """
+            MATCH (u:Usuario {id: $user_id})-[r:INTERACTUÓ_COMENTARIO]->(c:Comentario {id: $comentario_id})
+            WHERE r.reportó = TRUE
+            REMOVE r.reportó
+            RETURN r
+            """
+            result = session.run(query, user_id=user_id, comentario_id=comentario_id)
+            if result.peek() is None:
+                return {"error": "La propiedad 'reportó' no existe o el comentario no ha sido reportado por este usuario."}
+
+        return {"message": "La propiedad 'reportó' ha sido eliminada de la relación INTERACTUÓ_COMENTARIO."}
+    
+    except Exception as e:
+        return {"error": str(e)}
+    
+@app.delete("/remove_like/{user_id}/{comentario_id}/{post_id}")
+def remove_like(user_id: int, comentario_id: int, post_id: int):
+    try:
+        with db.session() as session:
+            query1 = """
+            MATCH (u:Usuario {id: $user_id})-[r1:INTERACTUÓ_COMENTARIO]->(c:Comentario {id: $comentario_id})
+            WHERE r1.likeo = TRUE
+            REMOVE r1.likeo
+            """
+            query2 = """
+            MATCH (u:Usuario {id: $user_id})-[r2:INTERACTUÓ_POST]->(p:Post {id: $post_id})
+            WHERE r2.calificó IS NOT NULL
+            REMOVE r2.calificó
+            """
+            # Ejecutar las consultas
+            session.run(query1, user_id=user_id, comentario_id=comentario_id)
+            session.run(query2, user_id=user_id, post_id=post_id)
+
+        return {"message": "Las propiedades de like y calificación han sido eliminadas de ambas relaciones."}
+    
+    except Exception as e:
+        return {"error": str(e)}
+
+
 
 # Comando para ejecutar API: python -m uvicorn API:app --reload
 
