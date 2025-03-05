@@ -35,6 +35,7 @@ const PostList: React.FC = () => {
             date={post.fecha.split("T")[0]}
             content={post.descripcion}
             calificacion={Number(post.calificacion)}
+            archivos={post.archivos}
           />
         </div>
       ))}
