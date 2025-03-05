@@ -10,19 +10,28 @@ import PostActions from "../molecules/PostActions";
 //   image?: string;
 // }
 
-const Post: React.FC<any> = ({ username, avatar, date, content, image }) => (
+const Post: React.FC<any> = ({
+  username,
+  avatar,
+  date,
+  content,
+  image,
+  title,
+  calificacion,
+}) => (
   <div style={styles.container}>
     <div style={styles.header}>
       <PostHeader username={username} avatar={avatar} date={date} />
     </div>
     <div style={styles.content}>
+      <h4 style={{ textAlign: "left", width: "90%" }}>{title}</h4>
       <p className="mt-2" style={{ width: "90%" }}>
         {content}
       </p>
       {image && <img className="mt-2 rounded-lg" src={image} alt={content} />}
     </div>
     <div style={styles.postActions}>
-      <PostActions />
+      <PostActions calificacion={calificacion} />
     </div>
   </div>
 );
@@ -62,6 +71,7 @@ const styles: Record<string, React.CSSProperties> = {
     width: "100%",
     height: "80%",
     backgroundColor: "white",
+    flexDirection: "column",
   },
   postActions: {
     display: "flex",

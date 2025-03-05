@@ -1,6 +1,10 @@
 import React from "react";
 
-const PostActions: React.FC = () => (
+interface PostActionProps {
+  calificacion: string;
+}
+
+const PostActions: React.FC<PostActionProps> = ({ calificacion }) => (
   <div
     style={{
       display: "flex",
@@ -8,11 +12,20 @@ const PostActions: React.FC = () => (
       alignContent: "center",
       alignItems: "center",
       width: "100%",
+      height: "100%",
     }}
   >
-    <button className="text-blue-500" style={{ backgroundColor: "#FF6B6B" }}>
-      👍 Like
-    </button>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "row",
+        height: "80%",
+      }}
+    >
+      <button className="text-blue-500" style={{ backgroundColor: "#FF6B6B" }}>
+        {calificacion} 👍 Like
+      </button>
+    </div>
     <button className="text-green-500" style={{ backgroundColor: "#757575" }}>
       💬 Comment
     </button>

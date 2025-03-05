@@ -33,6 +33,7 @@ const PostList: React.FC = () => {
             avatar="https://via.placeholder.com/150"
             date={post.fecha.split("T")[0]}
             content={post.descripcion}
+            calificacion={post.calificacion}
           />
         </div>
       ))}
