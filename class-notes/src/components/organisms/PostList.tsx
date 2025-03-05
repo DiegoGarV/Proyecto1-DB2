@@ -1,6 +1,7 @@
 import React from "react";
 import { usePosts } from "../../services/api";
 import Post from "./Post";
+import Avatar from "../../assets/usuario/DefaultUser.png";
 
 // interface PostType {
 //   id: number;
@@ -30,10 +31,10 @@ const PostList: React.FC = () => {
             title={post.titulo}
             body={post.descripcion}
             username="Usuario Desconocido"
-            avatar="https://via.placeholder.com/150"
+            avatar={Avatar}
             date={post.fecha.split("T")[0]}
             content={post.descripcion}
-            calificacion={post.calificacion}
+            calificacion={Number(post.calificacion)}
           />
         </div>
       ))}

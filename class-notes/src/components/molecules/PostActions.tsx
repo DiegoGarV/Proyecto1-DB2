@@ -1,38 +1,63 @@
-import React from "react";
+import React, { useState } from "react";
+import Button from "../atoms/Button";
 
 interface PostActionProps {
-  calificacion: string;
+  calificacion: number;
 }
 
-const PostActions: React.FC<PostActionProps> = ({ calificacion }) => (
-  <div
-    style={{
-      display: "flex",
-      justifyContent: "space-evenly",
-      alignContent: "center",
-      alignItems: "center",
-      width: "100%",
-      height: "100%",
-    }}
-  >
+const PostActions: React.FC<PostActionProps> = ({ calificacion }) => {
+  const [likes, setLikes] = useState<number>(calificacion);
+  const [wasPressed, setWasPressed] = useState<boolean>(false);
+  const [hasShared, setHasShared] = useState<boolean>(false);
+
+  const share = () => {
+    setHasShared(!hasShared);
+  };
+
+  const likesPress = () => {
+    setWasPressed(!wasPressed);
+    if (!wasPressed) {
+      setLikes((prev) => prev + 1);
+    } else {
+      setLikes((prev) => prev - 1);
+    }
+  };
+
+  return (
     <div
       style={{
         display: "flex",
-        flexDirection: "row",
-        height: "80%",
+        justifyContent: "space-evenly",
+        alignContent: "center",
+        alignItems: "center",
+        width: "100%",
+        height: "100%",
       }}
     >
-      <button className="text-blue-500" style={{ backgroundColor: "#FF6B6B" }}>
-        {calificacion} 👍 Like
-      </button>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "row",
+          height: "80%",
+          justifyContent: "center",
+          alignContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <Button
+          label={`${likes} 👍`}
+          variant="secondary"
+          onClick={likesPress}
+        ></Button>
+      </div>
+      <Button label="Comment" variant="secondary"></Button>
+      <Button
+        label={hasShared ? "✅ Shared!" : "🔄 Share"}
+        variant="secondary"
+        onClick={share}
+      ></Button>
     </div>
-    <button className="text-green-500" style={{ backgroundColor: "#757575" }}>
-      💬 Comment
-    </button>
-    <button className="text-gray-500" style={{ backgroundColor: "#007BFF" }}>
-      🔄 Share
-    </button>
-  </div>
-);
+  );
+};
 
 export default PostActions;
