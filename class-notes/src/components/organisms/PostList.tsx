@@ -2,15 +2,15 @@ import React from "react";
 import { usePosts } from "../../services/api";
 import Post from "./Post";
 
-interface PostType {
-  id: number;
-  title: string;
-  body: string;
-  username: string;
-  avatar: string;
-  date: string;
-  content: string;
-}
+// interface PostType {
+//   id: number;
+//   title: string;
+//   body: string;
+//   username: string;
+//   avatar: string;
+//   date: string;
+//   content: string;
+// }
 
 const PostList: React.FC = () => {
   const { data, isLoading, error } = usePosts();
@@ -23,9 +23,17 @@ const PostList: React.FC = () => {
 
   return (
     <div style={styles.container}>
-      {randomPosts.map((post: PostType) => (
+      {randomPosts.map((post: any) => (
         <div style={styles.post} key={post.id}>
-          <Post {...post} />
+          <Post
+            id={post.id}
+            title={post.titulo}
+            body={post.descripcion}
+            username="Usuario Desconocido"
+            avatar="https://via.placeholder.com/150"
+            date={post.fecha.split("T")[0]}
+            content={post.descripcion}
+          />
         </div>
       ))}
     </div>

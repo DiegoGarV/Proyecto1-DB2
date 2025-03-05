@@ -2,21 +2,15 @@ import React from "react";
 import PostHeader from "../molecules/PostHeader";
 import PostActions from "../molecules/PostActions";
 
-interface PostProps {
-  username: string;
-  avatar: string;
-  date: string;
-  content: string;
-  image?: string;
-}
+// interface PostProps {
+//   username: string;
+//   avatar: string;
+//   date: string;
+//   content: string;
+//   image?: string;
+// }
 
-const Post: React.FC<PostProps> = ({
-  username,
-  avatar,
-  date,
-  content,
-  image,
-}) => (
+const Post: React.FC<any> = ({ username, avatar, date, content, image }) => (
   <div style={styles.container}>
     <div style={styles.header}>
       <PostHeader username={username} avatar={avatar} date={date} />

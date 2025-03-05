@@ -3,7 +3,7 @@ import PostList from "../components/organisms/PostList";
 
 const Home: React.FC = () => (
   <div style={styles.contenedor}>
-    <h1 style={styles.extraCont}>Home</h1>
+    <h1 style={styles.header}>Home</h1>
     <div style={styles.postCont}>
       <PostList />
     </div>
@@ -15,15 +15,14 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "center",
     alignContent: "center",
     alignItems: "center",
-    overflow: "hide",
     backgroundColor: "#009688",
   },
-  extraCont: {
+  header: {
     display: "flex",
     justifyContent: "center",
     alignContent: "center",
     alignItems: "center",
-    overflow: "hide",
+    width: "100%",
     backgroundColor: "#009688",
   },
   postCont: {
