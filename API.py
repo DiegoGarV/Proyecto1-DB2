@@ -244,13 +244,13 @@ def create_user(cursos_llevados: List[str], cursos_actuales: List[str], correo: 
         return {"error": str(e)}
     
 @app.post("/create_post")
-def create_post(user_id: int, titulo: str, descripcion: str, adjuntos: Optional[List[str]] = [], clase: Optional[str] = None, temas: Optional[List[str]] = [], examen: Optional[bool] = False, comunidad: Optional[int] = 0):
+def create_post(user_id: int, titulo: str, descripcion: str, archivos: Optional[List[str]] = [], clase: Optional[str] = None, temas: Optional[List[str]] = [], examen: Optional[bool] = False, comunidad: Optional[int] = 0):
     try:
         post_id = int(str(uuid4().int)[:8], 16)
 
         fecha = datetime.utcnow().isoformat()
 
-        tipo = "relevante" if adjuntos else "otro"
+        tipo = "relevante" if archivos else "otro"
 
         query = """
         CREATE (p:Post {
@@ -258,7 +258,7 @@ def create_post(user_id: int, titulo: str, descripcion: str, adjuntos: Optional[
             fecha: $fecha,
             titulo: $titulo,
             descripcion: $descripcion,
-            adjuntos: $adjuntos,
+            archivos: $archivos,
             calificacion: 0,
             status: TRUE
         })
@@ -274,7 +274,7 @@ def create_post(user_id: int, titulo: str, descripcion: str, adjuntos: Optional[
                                  fecha=fecha, 
                                  titulo=titulo, 
                                  descripcion=descripcion, 
-                                 adjuntos=adjuntos, 
+                                 archivos=archivos, 
                                  user_id=user_id, 
                                  tipo=tipo)
 
@@ -771,7 +771,7 @@ def edit_comment(user_id: int, comment_id: int, nuevo_contenido: str):
 
 @app.put("/edit_post")
 def edit_post(user_id: int, post_id: int, nuevo_titulo: Optional[str] = None, 
-              nueva_descripcion: Optional[str] = None, nuevos_adjuntos: Optional[List[str]] = None):
+              nueva_descripcion: Optional[str] = None, nuevos_archivos: Optional[List[str]] = None):
     try:
         fecha_edicion = datetime.utcnow().isoformat()
 
@@ -789,7 +789,7 @@ def edit_post(user_id: int, post_id: int, nuevo_titulo: Optional[str] = None,
         
         SET p.titulo = COALESCE($nuevo_titulo, p.titulo),
             p.descripcion = COALESCE($nueva_descripcion, p.descripcion),
-            p.adjuntos = COALESCE($nuevos_adjuntos, p.adjuntos)
+            p.adjuntos = COALESCE($nuevos_archivos, p.adjuntos)
         RETURN p, new_r
         """
 
@@ -800,7 +800,7 @@ def edit_post(user_id: int, post_id: int, nuevo_titulo: Optional[str] = None,
                                  fecha_edicion=fecha_edicion, 
                                  nuevo_titulo=nuevo_titulo, 
                                  nueva_descripcion=nueva_descripcion, 
-                                 nuevos_adjuntos=nuevos_adjuntos)
+                                 nuevos_archivos=nuevos_archivos)
 
             updated_post = result.single()
 
@@ -813,7 +813,7 @@ def edit_post(user_id: int, post_id: int, nuevo_titulo: Optional[str] = None,
                 "id": post_id,
                 "nuevo_titulo": nuevo_titulo if nuevo_titulo else updated_post["p"]["titulo"],
                 "nueva_descripcion": nueva_descripcion if nueva_descripcion else updated_post["p"]["descripcion"],
-                "nuevos_adjuntos": nuevos_adjuntos if nuevos_adjuntos else updated_post["p"]["adjuntos"]
+                "nuevos_archivos": nuevos_archivos if nuevos_archivos else updated_post["p"]["adjuntos"]
             },
             "relación_editó": {
                 "fecha_edición": fecha_edicion,
@@ -1314,7 +1314,33 @@ def remove_like(user_id: int, comentario_id: int, post_id: int):
     except Exception as e:
         return {"error": str(e)}
 
+@app.get("/user_posts")
+def get_user_posts(user_id: int):
+    try:
+        query = """
+        MATCH (u:Usuario {id: $user_id})-[r:PUBLICÓ]->(p:Post)
+        RETURN p.id AS id, p.título AS titulo, p.descripcion AS descripcion, 
+               p.fecha AS fecha, p.adjuntos AS adjuntos, p.calificación AS calificacion
+        """
 
+        with db.session() as session:
+            result = session.run(query, user_id=user_id)
+            posts = [
+                {
+                    "id": record["id"],
+                    "titulo": record["titulo"],
+                    "descripcion": record["descripcion"],
+                    "fecha": record["fecha"],
+                    "adjuntos": record["adjuntos"],
+                    "calificacion": record["calificacion"]
+                }
+                for record in result
+            ]
+
+        return {"posts": posts}
+    
+    except Exception as e:
+        return {"error": str(e)}
 
 # Comando para ejecutar API: python -m uvicorn API:app --reload
 
