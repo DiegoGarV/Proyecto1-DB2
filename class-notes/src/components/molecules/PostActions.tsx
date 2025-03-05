@@ -10,11 +10,11 @@ const PostActions: React.FC<PostActionProps> = ({ calificacion }) => {
   const [wasPressed, setWasPressed] = useState<boolean>(false);
   const [hasShared, setHasShared] = useState<boolean>(false);
 
-  const share = () => {
+  const sharePress = () => {
     setHasShared(!hasShared);
   };
 
-  const likesPress = () => {
+  const likePress = () => {
     setWasPressed(!wasPressed);
     if (!wasPressed) {
       setLikes((prev) => prev + 1);
@@ -47,14 +47,14 @@ const PostActions: React.FC<PostActionProps> = ({ calificacion }) => {
         <Button
           label={`${likes} 👍`}
           variant="secondary"
-          onClick={likesPress}
+          onClick={likePress}
         ></Button>
       </div>
       <Button label="Comment" variant="secondary"></Button>
       <Button
         label={hasShared ? "✅ Shared!" : "🔄 Share"}
         variant="secondary"
-        onClick={share}
+        onClick={sharePress}
       ></Button>
     </div>
   );
