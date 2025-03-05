@@ -34,11 +34,12 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "center",
     alignContent: "center",
     alignItems: "center",
+    backgroundColor: "#F5F5F5",
   },
   post: {
     display: "flex",
-    backgroundColor: "blue",
     marginBottom: 20,
+    marginTop: 20,
     justifyContent: "center",
     alignContent: "center",
     alignItems: "center",

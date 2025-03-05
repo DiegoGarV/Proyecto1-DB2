@@ -16,6 +16,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignContent: "center",
     alignItems: "center",
     overflow: "hide",
+    backgroundColor: "#009688",
   },
   extraCont: {
     display: "flex",
@@ -23,6 +24,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignContent: "center",
     alignItems: "center",
     overflow: "hide",
+    backgroundColor: "#009688",
   },
   postCont: {
     display: "flex",
@@ -30,6 +32,7 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "center",
     alignContent: "center",
     alignItems: "center",
+    backgroundColor: "#FAFAFA",
   },
 };
 

@@ -22,12 +22,12 @@ const PostHeader: React.FC<PostHeaderProps> = ({ username, avatar, date }) => (
 const styles: Record<string, React.CSSProperties> = {
   container: {
     display: "flex",
-    backgroundColor: "purple",
     paddingRight: 10,
     marginLeft: 10,
     justifyContent: "center",
     alignContent: "center",
     alignItems: "center",
+    color: "white",
   },
   profilePic: {
     marginLeft: 10,
