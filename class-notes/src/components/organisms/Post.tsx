@@ -16,7 +16,9 @@ const Post: React.FC<any> = ({ username, avatar, date, content, image }) => (
       <PostHeader username={username} avatar={avatar} date={date} />
     </div>
     <div style={styles.content}>
-      <p className="mt-2">{content}</p>
+      <p className="mt-2" style={{ width: "90%" }}>
+        {content}
+      </p>
       {image && <img className="mt-2 rounded-lg" src={image} alt={content} />}
     </div>
     <div style={styles.postActions}>

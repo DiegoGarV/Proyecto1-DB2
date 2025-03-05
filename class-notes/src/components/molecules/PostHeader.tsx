@@ -12,30 +12,26 @@ const PostHeader: React.FC<PostHeaderProps> = ({ username, avatar, date }) => (
     <div style={styles.profilePic}>
       <Avatar src={avatar} />
     </div>
-    <div style={styles.userNameCont}>
-      <p className="font-bold">{username}</p>
-      <p className="text-sm text-gray-500">{date}</p>
-    </div>
+    <p className="font-bold">{username}</p>
+    <p className="text-sm text-gray-500">{date}</p>
   </div>
 );
 
 const styles: Record<string, React.CSSProperties> = {
   container: {
     display: "flex",
-    paddingRight: 10,
-    marginLeft: 10,
-    justifyContent: "center",
+    justifyContent: "space-evenly",
     alignContent: "center",
     alignItems: "center",
     color: "white",
+    width: "100%",
+    alignSelf: "center",
   },
-  profilePic: {
-    marginLeft: 10,
-    marginRight: 10,
-  },
+  profilePic: {},
   userNameCont: {
     display: "flex",
-    marginLeft: 10,
+    width: "100%",
+    backgroundColor: "red",
     justifyContent: "center",
     alignContent: "center",
     alignItems: "center",
