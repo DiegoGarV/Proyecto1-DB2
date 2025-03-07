@@ -1543,51 +1543,64 @@ def remove_post_rating_and_points(post_id: int):
         return {"error": str(e)}
 
 
-@app.delete("/remove_report/{user_id}/{comentario_id}")
-def remove_report(user_id: int, comentario_id: int):
+@app.delete("/remove_report/{user_id}")
+def remove_report(user_id: int, comentario_id: Optional[int] = None, post_id: Optional[int] = None):
     try:
         with db.session() as session:
-            query = """
-            MATCH (u:Usuario {id: $user_id})-[r:INTERACTUÓ_COMENTARIO]->(c:Comentario {id: $comentario_id})
-            WHERE r.reportó = TRUE
-            REMOVE r.reportó
-            RETURN r
-            """
-            result = session.run(query, user_id=user_id, comentario_id=comentario_id)
-            if result.peek() is None:
-                return {
-                    "error": "La propiedad 'reportó' no existe o el comentario no ha sido reportado por este usuario."
-                }
+            report_removed = False  # Para rastrear si eliminamos al menos un reporte
 
-        return {
-            "message": "La propiedad 'reportó' ha sido eliminada de la relación INTERACTUÓ_COMENTARIO."
-        }
+            if comentario_id is not None:
+                query1 = """
+                MATCH (u:Usuario {id: $user_id})-[r:INTERACTUÓ_COMENTARIO]->(c:Comentario {id: $comentario_id})
+                WHERE r.reportó = TRUE
+                REMOVE r.reportó
+                RETURN r
+                """
+                result1 = session.run(query1, user_id=user_id, comentario_id=comentario_id)
+                if result1.peek():
+                    report_removed = True
+
+            if post_id is not None:
+                query2 = """
+                MATCH (u:Usuario {id: $user_id})-[r:INTERACTUÓ_POST]->(p:Post {id: $post_id})
+                WHERE r.reportó = TRUE
+                REMOVE r.reportó
+                RETURN r
+                """
+                result2 = session.run(query2, user_id=user_id, post_id=post_id)
+                if result2.peek():
+                    report_removed = True
+
+        if report_removed:
+            return {"message": "La propiedad 'reportó' ha sido eliminada correctamente."}
+        else:
+            return {"error": "No se encontró ninguna propiedad 'reportó' para eliminar."}
 
     except Exception as e:
         return {"error": str(e)}
 
 
-@app.delete("/remove_like/{user_id}/{comentario_id}/{post_id}")
-def remove_like(user_id: int, comentario_id: int, post_id: int):
+@app.delete("/remove_like/{user_id}")
+def remove_like(user_id: int, comentario_id: Optional[int] = None, post_id: Optional[int] = None):
     try:
         with db.session() as session:
-            query1 = """
-            MATCH (u:Usuario {id: $user_id})-[r1:INTERACTUÓ_COMENTARIO]->(c:Comentario {id: $comentario_id})
-            WHERE r1.likeo = TRUE
-            REMOVE r1.likeo
-            """
-            query2 = """
-            MATCH (u:Usuario {id: $user_id})-[r2:INTERACTUÓ_POST]->(p:Post {id: $post_id})
-            WHERE r2.calificó IS NOT NULL
-            REMOVE r2.calificó
-            """
-            # Ejecutar las consultas
-            session.run(query1, user_id=user_id, comentario_id=comentario_id)
-            session.run(query2, user_id=user_id, post_id=post_id)
+            if comentario_id is not None:
+                query1 = """
+                MATCH (u:Usuario {id: $user_id})-[r1:INTERACTUÓ_COMENTARIO]->(c:Comentario {id: $comentario_id})
+                WHERE r1.likeo = TRUE
+                REMOVE r1.likeo
+                """
+                session.run(query1, user_id=user_id, comentario_id=comentario_id)
 
-        return {
-            "message": "Las propiedades de like y calificación han sido eliminadas de ambas relaciones."
-        }
+            if post_id is not None:
+                query2 = """
+                MATCH (u:Usuario {id: $user_id})-[r2:INTERACTUÓ_POST]->(p:Post {id: $post_id})
+                WHERE r2.calificó IS NOT NULL
+                REMOVE r2.calificó
+                """
+                session.run(query2, user_id=user_id, post_id=post_id)
+
+        return {"message": "Las propiedades han sido eliminadas correctamente."}
 
     except Exception as e:
         return {"error": str(e)}
@@ -1621,5 +1634,80 @@ def get_user_posts(user_id: int):
     except Exception as e:
         return {"error": str(e)}
 
+@app.get("/user_comments/{user_id}")
+def get_user_comments(user_id: int):
+    try:
+        with db.session() as session:
+            query = """
+            MATCH (u:Usuario {id: $user_id})-[:CREÓ_COMENTARIO]->(c:Comentario)
+            RETURN c.id AS id, c.texto AS texto, c.fecha AS fecha, c.likes AS likes
+            """
+            result = session.run(query, user_id=user_id)
+            
+            comments = [
+                {
+                    "id": record["id"],
+                    "texto": record["texto"],
+                    "fecha": record["fecha"],
+                    "likes": record["likes"]
+                }
+                for record in result
+            ]
+
+        return {"comentarios": comments}
+
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/post_user/{post_id}")
+def get_post_user(post_id: int):
+    try:
+        query = """
+        MATCH (u:Usuario)-[:PUBLICÓ]->(p:Post {id: $post_id})
+        RETURN u.id AS id, u.nombre_usuario AS nombre, u.correo AS correo, u.beca AS beca
+        """
+
+        with db.session() as session:
+            result = session.run(query, post_id=post_id)
+            user = result.single()
+
+        if user:
+            return {
+                "id": user["id"],
+                "nombre": user["nombre"],
+                "correo": user["correo"],
+                "beca": user["beca"]
+            }
+        else:
+            return {"error": "No se encontró el usuario que creó este post."}
+
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/comment_user/{comment_id}")
+def get_comment_user(comment_id: int):
+    try:
+        query = """
+        MATCH (u:Usuario)-[:CREÓ_COMENTARIO]->(c:Comentario {id: $comment_id})
+        RETURN u.id AS id, u.nombre_usuario AS nombre, u.correo AS correo, u.beca AS beca
+        """
+
+        with db.session() as session:
+            result = session.run(query, comment_id=comment_id)
+            user = result.single()
+
+        if user:
+            return {
+                "id": user["id"],
+                "nombre": user["nombre"],
+                "correo": user["correo"],
+                "beca": user["beca"]
+            }
+        else:
+            return {"error": "No se encontró el usuario que creó este comentario."}
+
+    except Exception as e:
+        return {"error": str(e)}
 
 # Comando para ejecutar API: python -m uvicorn API:app --reload
