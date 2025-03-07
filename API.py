@@ -144,7 +144,7 @@ def get_post_comments(post_id: int):
         with db.session() as session:
             result = session.run(
                 """
-                MATCH (p:Post)<-[:PERTENECE_A_POST]-(c:Comentario)
+                MATCH (p:Post)<-[:PERTENECE_POST]-(c:Comentario)
                 WHERE p.id = $post_id AND c.status = 'TRUE'
                 RETURN c.id AS id, c.contenido AS contenido, c.fecha AS fecha, c.likes AS likes
             """,
