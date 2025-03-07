@@ -1,12 +1,12 @@
 // Cargar nodos
-LOAD CSV WITH HEADERS FROM 'https://gist.githubusercontent.com/Abysswalkr/954780b961ff1e5da186d99244082f49/raw/b1f404262ef54ba8fd2091c013e1290196f19b3f/nodos.csv' AS row
+LOAD CSV WITH HEADERS FROM 'https://gist.githubusercontent.com/Abysswalkr/954780b961ff1e5da186d99244082f49/raw/eb62b5a083ed4382d4ea0d33dd939476f1b4660c/nodos.csv' AS row
 CALL apoc.create.node([row.etiquetas], apoc.map.clean(row, ['etiquetas', 'id'], [])) YIELD node
 SET node.id = toInteger(row.id)
 RETURN count(node);
 
 
 // Cargar relaciones
-LOAD CSV WITH HEADERS FROM 'https://gist.githubusercontent.com/Abysswalkr/954780b961ff1e5da186d99244082f49/raw/b1f404262ef54ba8fd2091c013e1290196f19b3f/relaciones.csv' AS row
+LOAD CSV WITH HEADERS FROM 'https://gist.githubusercontent.com/Abysswalkr/954780b961ff1e5da186d99244082f49/raw/eb62b5a083ed4382d4ea0d33dd939476f1b4660c/relaciones.csv' AS row
 MATCH (s {id: toInteger(row.START_ID)}), (e {id: toInteger(row.END_ID)})
 CALL apoc.create.relationship(
   s,
