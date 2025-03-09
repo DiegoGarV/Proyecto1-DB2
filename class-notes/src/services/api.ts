@@ -45,3 +45,16 @@ export const useCommentUser = (commentId: number) => {
     enabled: !!commentId,
   });
 };
+
+export const useCommentReplies = (commentId: number) => {
+  return useQuery({
+    queryKey: ["commentReplies", commentId],
+    queryFn: async () => {
+      const { data } = await axios.get(
+        `${API_URL}/getCommentReplies/${commentId}`
+      );
+      return data.replies;
+    },
+    enabled: !!commentId,
+  });
+};

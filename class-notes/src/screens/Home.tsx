@@ -1,9 +1,20 @@
 import React from "react";
 import PostList from "../components/organisms/PostList";
+import Avatar from "../components/atoms/Avatar";
+import userImg from "../assets/usuario/DefaultUser.png";
 
 const Home: React.FC = () => (
   <div style={styles.contenedor}>
-    <h1 style={styles.header}>Home</h1>
+    <div style={styles.header}>
+      <div style={styles.userCont}>
+        <div style={styles.userImg}>
+          <Avatar src={userImg} size={50} />
+        </div>
+        <div style={styles.userName}>Usuario</div>
+      </div>
+      <div style={styles.title}>Home</div>
+      <div style={styles.optionsCont}> Options</div>
+    </div>
     <div style={styles.postCont}>
       <PostList />
     </div>
@@ -32,6 +43,28 @@ const styles: Record<string, React.CSSProperties> = {
     alignContent: "center",
     alignItems: "center",
     backgroundColor: "#FAFAFA",
+  },
+  userName: {},
+  userCont: {
+    display: "flex",
+    width: "33%",
+    justifyContent: "flex-start",
+    alignContent: "center",
+    alignItems: "center",
+    gap: 10,
+  },
+  title: {
+    display: "flex",
+    width: "33%",
+    justifyContent: "center",
+    alignContent: "center",
+    alignItems: "center",
+    fontSize: 30,
+  },
+  optionsCont: {
+    display: "flex",
+    width: "33%",
+    justifyContent: "flex-end",
   },
 };
 
