@@ -3,24 +3,36 @@ import Button from "../atoms/Button";
 
 interface PostActionProps {
   calificacion: number;
+  commentPress: () => void;
+  likePress?: () => void;
+  sharePress?: () => void;
 }
 
-const PostActions: React.FC<PostActionProps> = ({ calificacion }) => {
+const PostActions: React.FC<PostActionProps> = ({
+  calificacion,
+  commentPress,
+  likePress,
+  sharePress,
+}) => {
   const [likes, setLikes] = useState<number>(calificacion);
   const [wasPressed, setWasPressed] = useState<boolean>(false);
   const [hasShared, setHasShared] = useState<boolean>(false);
 
-  const sharePress = () => {
+  const onSharePress = () => {
     setHasShared(!hasShared);
   };
 
-  const likePress = () => {
+  const onLikePress = () => {
     setWasPressed(!wasPressed);
     if (!wasPressed) {
       setLikes((prev) => prev + 1);
     } else {
       setLikes((prev) => prev - 1);
     }
+  };
+
+  const onCommentPress = () => {
+    commentPress();
   };
 
   return (
@@ -47,14 +59,18 @@ const PostActions: React.FC<PostActionProps> = ({ calificacion }) => {
         <Button
           label={`${likes} 👍`}
           variant="secondary"
-          onClick={likePress}
+          onClick={onLikePress}
         ></Button>
       </div>
-      <Button label="Comment" variant="secondary"></Button>
       <Button
-        label={hasShared ? "✅ Shared!" : "🔄 Share"}
+        label="Comment"
         variant="secondary"
-        onClick={sharePress}
+        onClick={onCommentPress}
+      ></Button>
+      <Button
+        label={hasShared ? "✅ Saved!" : "💾 Save"}
+        variant="secondary"
+        onClick={onSharePress}
       ></Button>
     </div>
   );

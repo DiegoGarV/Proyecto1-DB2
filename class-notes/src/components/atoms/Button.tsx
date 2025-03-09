@@ -5,6 +5,7 @@ interface ButtonProps {
   label: string;
   onClick?: () => void;
   variant?: "primary" | "secondary" | "danger";
+  padding?: string;
 }
 
 const Styles: Record<string, React.CSSProperties> = {
@@ -40,6 +41,7 @@ const Button: React.FC<ButtonProps> = ({
   label,
   onClick,
   variant = "primary",
+  padding = "12px 24px",
 }) => {
   const [pressed, setPressed] = useState<boolean>(false);
 
@@ -56,7 +58,11 @@ const Button: React.FC<ButtonProps> = ({
   };
   return (
     <motion.button
-      style={{ ...Styles.base, ...Styles[pressed ? "primary" : variant] }}
+      style={{
+        ...Styles.base,
+        ...Styles[pressed ? "primary" : variant],
+        padding: padding,
+      }}
       whileTap={{ scale: 0.9 }}
       whileHover={{ scale: 1.05 }}
       transition={{ duration: 0.2, ease: "easeInOut" }}

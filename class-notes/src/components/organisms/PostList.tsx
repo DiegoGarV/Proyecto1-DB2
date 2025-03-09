@@ -58,6 +58,7 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "center",
     alignContent: "center",
     alignItems: "center",
+    flexDirection: "column",
   },
 };
 export default PostList;

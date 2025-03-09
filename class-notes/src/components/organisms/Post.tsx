@@ -1,6 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import PostHeader from "../molecules/PostHeader";
 import PostActions from "../molecules/PostActions";
+import PostArchives from "../molecules/PostArchives";
+import { usePostUser } from "../../services/api";
+import CommentsList from "./CommentList";
 
 const Post: React.FC<any> = ({
   username,
@@ -10,38 +13,46 @@ const Post: React.FC<any> = ({
   archivos,
   title,
   calificacion,
+  id,
 }) => {
-  console.warn(archivos);
-  const archivosArray =
-    typeof archivos === "string"
-      ? JSON.parse(archivos.replace(/'/g, '"'))
-      : archivos;
+  const { data: user } = usePostUser(id);
+
+  const [showComments, setShowComments] = useState<boolean>(false);
+
+  const toggleComments = () => {
+    setShowComments(!showComments);
+  };
 
   return (
     <div style={styles.container}>
       <div style={styles.header}>
-        <PostHeader username={username} avatar={avatar} date={date} />
+        <PostHeader username={user?.nombre} avatar={avatar} date={date} />
       </div>
       <div style={styles.content}>
-        <h4 style={{ textAlign: "left", width: "90%" }}>{title}</h4>
-        <p className="mt-2" style={{ width: "90%" }}>
-          {content}
-        </p>
-        <div className="archiveCont" style={styles.archiveCont}>
-          {Array.isArray(archivosArray) ? (
-            archivosArray.map((archivo: string, index: number) => (
-              <div key={index} style={styles.archive}>
-                <text style={styles.archiveText}>{`📑  ${archivo}  `}</text>
-              </div>
-            ))
-          ) : (
-            <p>No hay archivos disponibles</p>
-          )}
+        <div style={styles.titleCont}>{title}</div>
+        <div style={{ width: "100%" }}>{content}</div>
+        <PostArchives archArr={archivos} />
+      </div>
+      <div
+        style={{
+          ...styles.postActions,
+          borderBottomLeftRadius: showComments ? 0 : 20,
+          borderBottomRightRadius: showComments ? 0 : 20,
+        }}
+      >
+        <PostActions
+          calificacion={calificacion}
+          commentPress={toggleComments}
+        />
+      </div>
+      {showComments && (
+        <div style={{ width: "90%" }}>
+          <div style={styles.commentDivisor}></div>
+          <div style={styles.commentsCont}>
+            <CommentsList postId={id} />
+          </div>
         </div>
-      </div>
-      <div style={styles.postActions}>
-        <PostActions calificacion={calificacion} />
-      </div>
+      )}
     </div>
   );
 };
@@ -55,16 +66,14 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     width: "30%",
     flexDirection: "column",
-    backgroundColor: "#212121",
-    borderWidth: 5,
-    borderColor: "#00796B",
-    padding: 2,
+    backgroundColor: "white",
+    border: "2px solid black",
     boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
+    gap: 15,
   },
   header: {
     display: "flex",
     width: "100%",
-    height: "15%",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     backgroundColor: "#00796B",
@@ -77,53 +86,23 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "center",
     alignContent: "center",
     alignItems: "center",
-    width: "100%",
-    height: "80%",
+    width: "90%",
     backgroundColor: "white",
     flexDirection: "column",
+    // backgroundColor: "green",
+    gap: 10,
   },
   postActions: {
     display: "flex",
     width: "100%",
     backgroundColor: "#F5F5F5",
-    height: "30%",
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    justifyContent: "flex-start",
-    alignContent: "center",
-    alignItems: "center",
-    paddingBottom: 10,
-  },
-  archiveCont: {
-    display: "flex",
-    width: "90%",
-    justifyContent: "space-around",
-    alignContent: "center",
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginBottom: 10,
-  },
-  archive: {
-    display: "flex",
-    flexShrink: 1,
-    borderRadius: 5,
-    borderWidth: 5,
-    borderColor: "black",
-    backgroundColor: "#D3D3D3",
     justifyContent: "center",
     alignContent: "center",
     alignItems: "center",
-    textAlign: "left",
-    flexDirection: "row",
-    overflow: "hidden",
-    flexWrap: "wrap",
-    padding: 1,
-    marginTop: 5,
-    marginBottom: 5,
-    paddingRight: 5,
-    paddingLeft: 5,
-    cursor: "pointer",
+    paddingTop: 10,
+    paddingBottom: 10,
   },
+
   archiveText: {
     display: "flex",
     textOverflow: "ellipsis",
@@ -132,6 +111,27 @@ const styles: Record<string, React.CSSProperties> = {
     justifySelf: "center",
     whiteSpace: "nowrap",
     overflow: "hidden",
+  },
+  commentDivisor: {
+    width: "100%",
+    height: 2,
+    backgroundColor: "black",
+    borderRadius: 1000,
+  },
+  titleCont: {
+    textAlign: "left",
+    borderBottomColor: "black",
+    borderBottomWidth: 2,
+    borderBottomStyle: "solid",
+    alignSelf: "flex-start",
+    fontSize: 20,
+  },
+  commentsCont: {
+    display: "flex",
+    width: "100%",
+    justifyContent: "center",
+    alignContent: "center",
+    alignItems: "center",
   },
 };
 
