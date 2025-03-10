@@ -766,7 +766,8 @@ def create_reply(user_id: int, comentario_post_id: int, contenido: str):
         longitud = len(contenido)
 
         query = """
-        MATCH (u:Usuario {id: $user_id}), (cp:Comentario:Post {id: $comentario_post_id})
+        MATCH (u:Usuario {id: $user_id}), (cp:Comentario {id: $comentario_post_id})
+        WITH u, cp
         CREATE (c:Comentario {
             id: $comentario_id,
             contenido: $contenido,
