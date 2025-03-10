@@ -991,69 +991,6 @@ def download_post(user_id: int, post_id: int):
     except Exception as e:
         return {"error": str(e)}
 
-@app.post("/rate_post")
-def rate_post(user_id: int, post_id: int):
-    try:
-
-        queryf = """
-        MATCH (u:Usuario {id: 306255506}), (p:Post {id: 544281184})
-        MATCH (creator:Usuario)-[r2:PUBLICÓ]->(p)
-
-        // Crear o actualizar la relación INTERACTUÓ_POST
-        WITH creator, p
-        MERGE (u)-[r:INTERACTUÓ_POST]->(p)
-        ON CREATE SET r.calificó = TRUE
-        ON MATCH SET r.calificó = TRUE
-
-        // Actualizar los puntos del creador del post
-        WITH creator, p, r
-        SET creator.puntos = COALESCE(creator.puntos, 0) + ($calificacion * 1000)
-
-        // Calcular el promedio de las calificaciones para el post
-        WITH p, avg(r.calificó) AS avg_calif, creator, r
-        SET p.calificacion = toInteger(avg_calif)
-
-        RETURN p, creator, r
-        """
-
-        query = """
-        MATCH (u:Usuario {id: $user_id}), (p:Post {id: $post_id})
-        MATCH (creator:Usuario)-[:PUBLICÓ]->(p)
-
-        // Crear o actualizar la relación INTERACTUÓ_COMENTARIO
-        MERGE (u)-[r:INTERACTUÓ_POST]->(p)
-        ON MATCH SET r.calificó = TRUE
-
-        // Incrementar el contador de likes en el comentario
-        SET p.calificacion = p.calificacion + 1
-
-        // Incrementar los puntos del creador del comentario
-        SET creator.puntos = COALESCE(creator.puntos, 0) + 500
-
-        RETURN r, p, creator
-        """
-
-        with db.session() as session:
-            result = session.run(query, 
-                                 user_id=user_id, 
-                                 post_id=post_id)
-
-            interaction = result.single()
-
-        if not interaction:
-            return {"error": "No se pudo calificar el post. Verifica que el usuario y el post existan."}
-
-        return {
-            "mensaje": "Post calificado exitosamente",
-            "post_id": post_id,
-            "calificación": interaction["r"]["calificó"],
-            "promedio_calificación": interaction["p"]["calificacion"],
-            "puntos_usuario": interaction["creator"]["puntos"]
-        }
-
-    except Exception as e:
-        return {"error": str(e)}
-
 @app.post("/join_community")
 def join_community(user_id: int, community_id: int):
     try:
@@ -1067,9 +1004,9 @@ def join_community(user_id: int, community_id: int):
         """
 
         with db.session() as session:
-            result = session.run(query, 
-                                 user_id=user_id, 
-                                 community_id=community_id, 
+            result = session.run(query,
+                                 user_id=user_id,
+                                 community_id=community_id,
                                  fecha=fecha)
 
             created_relationship = result.single()
@@ -1084,6 +1021,54 @@ def join_community(user_id: int, community_id: int):
                 "rol": "participante",
                 "estado": "activo"
             }
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.post("/rate_post")
+def rate_post(user_id: int, post_id: int, calificacion: int):
+    try:
+        queryf = """
+        MATCH (u:Usuario {id: $user_id}), (p:Post {id: $post_id})
+        MATCH (creator:Usuario)-[:PUBLICÓ]->(p)
+
+        // Crear o actualizar la relación INTERACTUÓ_POST
+        MERGE (u)-[r:INTERACTUÓ_POST]->(p)
+        ON CREATE SET r.calificó = $calificacion
+        ON MATCH SET r.calificó = $calificacion
+
+        // Sumar puntos al creador del post
+        WITH creator, p
+        SET creator.puntos = COALESCE(creator.puntos, 0) + ($calificacion * 1000)
+
+        // Recolectar TODAS las calificaciones para recalcular el promedio
+        WITH p, creator
+        MATCH (p)<-[allRels:INTERACTUÓ_POST]-(:Usuario)
+        WHERE allRels.calificó IS NOT NULL
+        WITH p, creator, avg(allRels.calificó) AS avg_calif
+        SET p.calificacion = toInteger(avg_calif)
+
+        RETURN p AS post, creator AS autor, p.calificacion AS promedio
+        """
+
+        with db.session() as session:
+            result = session.run(
+                queryf,
+                user_id=user_id,
+                post_id=post_id,
+                calificacion=calificacion
+            )
+            interaction = result.single()
+
+        if not interaction:
+            return {"error": "No se pudo calificar el post. Verifica que el usuario y el post existan."}
+
+        return {
+            "mensaje": "Post calificado exitosamente",
+            "post_id": interaction["post"]["id"],
+            "promedio_calificación": interaction["promedio"],
+            "puntos_autor": interaction["autor"].get("puntos", 0)
         }
 
     except Exception as e:
