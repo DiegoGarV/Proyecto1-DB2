@@ -432,7 +432,7 @@ def create_post(
     user_id: int,
     titulo: str,
     descripcion: str,
-    adjuntos: Optional[List[str]] = [],
+    archivos: Optional[List[str]] = [],
     clase: Optional[str] = None,
     temas: Optional[List[str]] = [],
     examen: Optional[bool] = False,
@@ -468,7 +468,7 @@ def create_post(
                 fecha=fecha,
                 titulo=titulo,
                 descripcion=descripcion,
-                adjuntos=adjuntos,
+                adjuntos=archivos,
                 user_id=user_id,
                 tipo=tipo,
             )
