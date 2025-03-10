@@ -2,15 +2,14 @@
 
 # pip install fastapi uvicorn neo4j
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from neo4j import GraphDatabase
 from datetime import datetime
 from uuid import uuid4
 from typing import List, Optional
 from fastapi.middleware.cors import CORSMiddleware
-
-app = FastAPI()
-
+from pydantic import BaseModel, EmailStr
+import uuid
 
 app = FastAPI()
 
@@ -22,14 +21,68 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+NEO4J_URI = "neo4j+s://7adc3091.databases.neo4j.io"
+NEO4J_USER = "neo4j"
+NEO4J_PASSWORD = "5kysW0wqPUqzVEBzo7SdkQs9bEg62NgEfYfwITRmP9E"
+
 # Conexión a Neo4J
 try:
-    db = GraphDatabase.driver(
-        "neo4j+s://7adc3091.databases.neo4j.io",
-        auth=("neo4j", "5kysW0wqPUqzVEBzo7SdkQs9bEg62NgEfYfwITRmP9E"),
-    )
+    db = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
 except Exception as e:
     print(f"Error conectando a Neo4J: {e}")
+
+
+class UserSignup(BaseModel):
+    email: EmailStr
+    name: str
+
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+
+def create_user(tx, email, name):
+    user_id = str(uuid.uuid4())[:8]
+    result = tx.run(
+        """
+        MERGE (u:Usuario {correo: $email})
+        ON CREATE SET u.nombre_usuario = $name, u.id = $id
+        RETURN u.id
+        """,
+        email=email,
+        name=name,
+        id=user_id,
+    )
+    return result.single()[0] if result.single() else None
+
+
+@app.post("/register")
+def register(user: UserSignup):
+    with db.session() as session:
+        existing_user = session.run(
+            "MATCH (u:Usuario {correo: $email}) RETURN u", email=user.email
+        )
+        if existing_user.single():
+            raise HTTPException(status_code=400, detail="El correo ya está registrado")
+
+        user_id = session.write_transaction(create_user, user.email, user.name)
+        return {"message": "Usuario creado exitosamente", "id": user_id}
+
+
+@app.post("/login")
+def login(user: UserLogin):
+    with db.session() as session:
+        result = session.run(
+            """
+            MATCH (u:Usuario {correo: $email, id: $password}) RETURN u
+            """,
+            email=user.email,
+            password=user.password,
+        )
+        if not result.single():
+            raise HTTPException(status_code=401, detail="Credenciales incorrectas")
+        return {"message": "Login exitoso", "user_id": user.password}
 
 
 @app.get("/users")
