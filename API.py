@@ -1544,7 +1544,9 @@ def remove_post_rating_and_points(post_id: int):
 
 
 @app.delete("/remove_report/{user_id}")
-def remove_report(user_id: int, comentario_id: Optional[int] = None, post_id: Optional[int] = None):
+def remove_report(
+    user_id: int, comentario_id: Optional[int] = None, post_id: Optional[int] = None
+):
     try:
         with db.session() as session:
             report_removed = False  # Para rastrear si eliminamos al menos un reporte
@@ -1556,7 +1558,9 @@ def remove_report(user_id: int, comentario_id: Optional[int] = None, post_id: Op
                 REMOVE r.reportó
                 RETURN r
                 """
-                result1 = session.run(query1, user_id=user_id, comentario_id=comentario_id)
+                result1 = session.run(
+                    query1, user_id=user_id, comentario_id=comentario_id
+                )
                 if result1.peek():
                     report_removed = True
 
@@ -1572,16 +1576,22 @@ def remove_report(user_id: int, comentario_id: Optional[int] = None, post_id: Op
                     report_removed = True
 
         if report_removed:
-            return {"message": "La propiedad 'reportó' ha sido eliminada correctamente."}
+            return {
+                "message": "La propiedad 'reportó' ha sido eliminada correctamente."
+            }
         else:
-            return {"error": "No se encontró ninguna propiedad 'reportó' para eliminar."}
+            return {
+                "error": "No se encontró ninguna propiedad 'reportó' para eliminar."
+            }
 
     except Exception as e:
         return {"error": str(e)}
 
 
 @app.delete("/remove_like/{user_id}")
-def remove_like(user_id: int, comentario_id: Optional[int] = None, post_id: Optional[int] = None):
+def remove_like(
+    user_id: int, comentario_id: Optional[int] = None, post_id: Optional[int] = None
+):
     try:
         with db.session() as session:
             if comentario_id is not None:
@@ -1634,6 +1644,7 @@ def get_user_posts(user_id: int):
     except Exception as e:
         return {"error": str(e)}
 
+
 @app.get("/user_comments/{user_id}")
 def get_user_comments(user_id: int):
     try:
@@ -1643,13 +1654,13 @@ def get_user_comments(user_id: int):
             RETURN c.id AS id, c.texto AS texto, c.fecha AS fecha, c.likes AS likes
             """
             result = session.run(query, user_id=user_id)
-            
+
             comments = [
                 {
                     "id": record["id"],
                     "texto": record["texto"],
                     "fecha": record["fecha"],
-                    "likes": record["likes"]
+                    "likes": record["likes"],
                 }
                 for record in result
             ]
@@ -1658,6 +1669,7 @@ def get_user_comments(user_id: int):
 
     except Exception as e:
         return {"error": str(e)}
+
 
 @app.get("/post_user/{post_id}")
 def get_post_user(post_id: int):
@@ -1676,7 +1688,7 @@ def get_post_user(post_id: int):
                 "id": user["id"],
                 "nombre": user["nombre"],
                 "correo": user["correo"],
-                "beca": user["beca"]
+                "beca": user["beca"],
             }
         else:
             return {"error": "No se encontró el usuario que creó este post."}
@@ -1702,12 +1714,13 @@ def get_comment_user(comment_id: int):
                 "id": user["id"],
                 "nombre": user["nombre"],
                 "correo": user["correo"],
-                "beca": user["beca"]
+                "beca": user["beca"],
             }
         else:
             return {"error": "No se encontró el usuario que creó este comentario."}
 
     except Exception as e:
         return {"error": str(e)}
+
 
 # Comando para ejecutar API: python -m uvicorn API:app --reload

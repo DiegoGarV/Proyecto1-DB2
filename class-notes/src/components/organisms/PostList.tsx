@@ -18,13 +18,15 @@ const PostList: React.FC = () => {
   if (isLoading) return <p>Loading...</p>;
   if (error) return <p>Error loading posts.</p>;
 
-  const randomPosts = data
-    ? [...data].sort(() => Math.random() - 0.5).slice(0, 10)
-    : [];
+  // const postToMap = data
+  //   ? [...data].sort(() => Math.random() - 0.5).slice(0, 10)
+  //   : [];
+
+  const postToMap = data ? data.slice(1, 2) : [];
 
   return (
     <div style={styles.container}>
-      {randomPosts.map((post: any) => (
+      {postToMap.map((post: any) => (
         <div style={styles.post} key={post.id}>
           <Post
             id={post.id}

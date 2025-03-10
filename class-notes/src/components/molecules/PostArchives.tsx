@@ -13,7 +13,7 @@ const PostArchives: React.FC<PostArchiveProps> = ({ archArr }) => {
       {Array.isArray(archivosArray) ? (
         archivosArray.map((archivo: string, index: number) => (
           <div key={index} style={styles.archive}>
-            <text style={styles.archiveText}>{`📑  ${archivo}  `}</text>
+            <div style={styles.archiveText}>{`📑  ${archivo}  `}</div>
           </div>
         ))
       ) : (
