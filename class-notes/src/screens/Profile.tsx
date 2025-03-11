@@ -22,7 +22,7 @@ const Profile: React.FC = () => {
               <Avatar src={avatarImg} size={50} />
             </div>
             <div style={styles.userName}>
-              {isLoading ? "Cargando..." : error ? "Error" : user?.nombre}
+              {isLoading ? "Cargando..." : error ? "Error" : user?.name}
             </div>
           </div>
         </div>
@@ -42,19 +42,19 @@ const Profile: React.FC = () => {
           <Avatar src={avatarImg} size={100} />
         </div>
         <Text size="large" className="mt-3">
-          UserName: {isLoading ? "Cargando..." : error ? "Error" : user?.nombre}
+          UserName: {isLoading ? "Cargando..." : error ? "Error" : user?.name}
         </Text>
         <Text color="gray" className="text-center mt-2">
-          Correo electronico: {user.correo}
+          Correo electronico: {user?.correo}
         </Text>
         <Text color="gray" className="text-center mt-2">
-          Cursos Actuales: {user.cursos_actuales}
+          Cursos Actuales: {user?.cursos_actuales}
         </Text>
         <Text color="gray" className="text-center mt-2">
-          Cursos Llevados: {user.cursos_llevados}
+          Cursos Llevados: {user?.cursos_llevados}
         </Text>
         <Text color="gray" className="text-center mt-2">
-          Beca? : {user.cursos_llevados}
+          Beca : {user?.beca ? "Si tengo!" : "No tengo"}
         </Text>
         <Button label="Editar Perfil" variant="primary" />
       </div>
@@ -126,15 +126,16 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     flexDirection: "row",
     width: "100%",
-    backgroundColor: "green",
   },
   follColumn: {
     display: "flex",
     alignContent: "center",
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "flex-start",
     flexDirection: "column",
+    paddingTop: 20,
     width: "50%",
+    minHeight: 200,
     backgroundColor: "lightblue",
   },
   follTitle: {

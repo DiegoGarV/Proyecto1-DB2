@@ -2,7 +2,7 @@
 
 # pip install fastapi uvicorn neo4j
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from neo4j import GraphDatabase
 from datetime import datetime
 from uuid import uuid4
@@ -930,8 +930,14 @@ def claim_reward(user_id: int, reward_id: int):
         return {"error": str(e)}
 
 
+class FollowRequest(BaseModel):
+    user_id: int
+    followed_id: int
+    notificacion: bool = True
+
+
 @app.post("/follow_user")
-def follow_user(user_id: int, followed_id: int, notificacion: bool = True):
+def follow_user(data: FollowRequest):
     try:
         fecha = datetime.utcnow().isoformat()
 
@@ -953,10 +959,10 @@ def follow_user(user_id: int, followed_id: int, notificacion: bool = True):
         with db.session() as session:
             result = session.run(
                 query,
-                user_id=user_id,
-                followed_id=followed_id,
+                user_id=data.user_id,
+                followed_id=data.followed_id,
                 fecha=fecha,
-                notificacion=notificacion,
+                notificacion=data.notificacion,
             )
 
             created_follow = result.single()
@@ -970,7 +976,7 @@ def follow_user(user_id: int, followed_id: int, notificacion: bool = True):
             "mensaje": "Usuario seguido exitosamente",
             "relacion": {
                 "fecha": fecha,
-                "notificacion": notificacion,
+                "notificacion": data.notificacion,
                 "mutuo": created_follow["r"]["mutuo"],
             },
         }
@@ -980,7 +986,7 @@ def follow_user(user_id: int, followed_id: int, notificacion: bool = True):
 
 
 @app.delete("/delete_follow")
-def delete_follow(user_id: int, followed_id: int):
+def delete_follow(user_id: int = Query(...), followed_id: int = Query(...)):
     try:
         query = """
         MATCH (u1:Usuario {id: $user_id})-[r:SIGUE]->(u2:Usuario {id: $followed_id})

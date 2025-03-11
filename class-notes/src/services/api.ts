@@ -150,7 +150,59 @@ export const useLoggedInUser = () => {
     queryKey: ["loggedInUser", LOGGED_IN_USER_ID],
     queryFn: async () => {
       const { data } = await axios.get(`${API_URL}/user/${LOGGED_IN_USER_ID}`);
-      return data.usuario; // Ajusta esto según la estructura de la respuesta
+      return data.usuario;
+    },
+  });
+};
+
+export const useFollowedUsers = () => {
+  return useQuery({
+    queryKey: ["followedUsers", LOGGED_IN_USER_ID],
+    queryFn: async () => {
+      const response = await axios.get(
+        `${API_URL}/getFollowed/${LOGGED_IN_USER_ID}`
+      );
+      return response.data.followed || [];
+    },
+  });
+};
+
+export const useFollowUser = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (followedId: number) => {
+      await axios.post(`${API_URL}/follow_user`, {
+        user_id: LOGGED_IN_USER_ID,
+        followed_id: followedId,
+        notificacion: true,
+      });
+    },
+    onSuccess: (_, followedId) => {
+      queryClient.invalidateQueries({
+        queryKey: ["following", LOGGED_IN_USER_ID],
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["followers", followedId] });
+    },
+  });
+};
+
+export const useUnfollowUser = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (followedId: number) => {
+      await axios.delete(`${API_URL}/delete_follow`, {
+        params: { user_id: LOGGED_IN_USER_ID, followed_id: followedId },
+      });
+    },
+    onSuccess: (_, followedId) => {
+      queryClient.invalidateQueries({
+        queryKey: ["following", LOGGED_IN_USER_ID],
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["followers", followedId] });
     },
   });
 };

@@ -6,6 +6,7 @@ interface ButtonProps {
   onClick?: () => void;
   variant?: "primary" | "secondary" | "danger";
   padding?: string;
+  disabled?: boolean;
 }
 
 const Styles: Record<string, React.CSSProperties> = {
@@ -42,6 +43,7 @@ const Button: React.FC<ButtonProps> = ({
   onClick,
   variant = "primary",
   padding = "12px 24px",
+  disabled = false,
 }) => {
   const [pressed, setPressed] = useState<boolean>(false);
 
@@ -67,6 +69,7 @@ const Button: React.FC<ButtonProps> = ({
       whileHover={{ scale: 1.05 }}
       transition={{ duration: 0.2, ease: "easeInOut" }}
       onClick={onPress}
+      disabled={disabled}
     >
       {label}
     </motion.button>

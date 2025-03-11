@@ -7,7 +7,11 @@ interface PostHeaderProps {
   date: string;
 }
 
-const PostHeader: React.FC<PostHeaderProps> = ({ username, avatar, date }) => (
+const PostHeader: React.FC<PostHeaderProps> = ({
+  username = "Anonimo",
+  avatar,
+  date,
+}) => (
   <div style={styles.container}>
     <div style={styles.profilePic}>
       <Avatar src={avatar} />

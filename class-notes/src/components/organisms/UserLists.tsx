@@ -1,44 +1,42 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
+import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import UserDisplay from "../molecules/UserDisplay";
 
-const LOGGED_IN_USER_ID = 40745258; // ID del usuario autenticado
-
-interface User {
-  id: number;
-  nombre: string;
-}
+const LOGGED_IN_USER_ID = 40745258;
 
 interface UserListProps {
   type: "followers" | "following"; // Indica qué lista mostrar
 }
 
+const fetchUsers = async (type: "followers" | "following") => {
+  const endpoint =
+    type === "followers"
+      ? `/getFollowers/${LOGGED_IN_USER_ID}`
+      : `/getFollowed/${LOGGED_IN_USER_ID}`;
+
+  const { data } = await axios.get(`http://127.0.0.1:8000${endpoint}`);
+  return data.followers || data.followed || [];
+};
+
 const UserList: React.FC<UserListProps> = ({ type }) => {
-  const [users, setUsers] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const endpoint =
-      type === "followers"
-        ? `/getFollowers/${LOGGED_IN_USER_ID}`
-        : `/getFollowed/${LOGGED_IN_USER_ID}`;
-
-    axios
-      .get(`http://127.0.0.1:8000${endpoint}`)
-      .then((response) => {
-        setUsers(response.data.followers || response.data.followed || []);
-      })
-      .catch((error) => console.error(`Error fetching ${type}:`, error))
-      .finally(() => setIsLoading(false));
-  }, [type]);
+  const {
+    data: users,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: [type, LOGGED_IN_USER_ID],
+    queryFn: () => fetchUsers(type),
+  });
 
   if (isLoading) return <p>Cargando {type}...</p>;
-  if (users.length === 0) return <p>No hay {type} aún.</p>;
+  if (error) return <p>Error cargando {type}.</p>;
+  if (!users || users.length === 0) return <p>No hay {type} aún.</p>;
 
   return (
     <div style={styles.userList}>
-      {users.map((user) => (
-        <UserDisplay key={user.id} userId={user.id} userName={user.nombre} />
+      {users.map((user: any) => (
+        <UserDisplay key={user.id} userId={user.id} userName={user.name} />
       ))}
     </div>
   );
