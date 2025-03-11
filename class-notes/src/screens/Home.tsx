@@ -3,12 +3,11 @@ import PostList from "../components/organisms/PostList";
 import Avatar from "../components/atoms/Avatar";
 import userImg from "../assets/usuario/DefaultUser.png";
 import { usePosts } from "../services/api";
-import { useNavigate } from "react-router-dom";
+import DropDown from "../components/molecules/DropDown";
 
 const Home: React.FC = () => {
   const { data, isLoading, error } = usePosts();
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const navigate = useNavigate();
 
   return (
     <div style={styles.contenedor}>
@@ -27,16 +26,7 @@ const Home: React.FC = () => {
           >
             Options ▼
           </div>
-          {dropdownOpen && (
-            <div style={styles.dropdownMenu}>
-              <div
-                style={styles.dropdownItem}
-                onClick={() => navigate("/saved-posts")}
-              >
-                Saved Posts
-              </div>
-            </div>
-          )}
+          {dropdownOpen && <DropDown />}
         </div>
       </div>
       <div style={styles.postCont}>
@@ -99,25 +89,6 @@ const styles: Record<string, React.CSSProperties> = {
     color: "white",
     borderRadius: "5px",
     userSelect: "none",
-  },
-  dropdownMenu: {
-    top: "100%",
-    right: 0,
-    backgroundColor: "white",
-    border: "1px solid #ddd",
-    boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
-    borderRadius: "5px",
-    overflow: "hidden",
-    zIndex: 1000,
-  },
-  dropdownItem: {
-    padding: "10px 15px",
-    cursor: "pointer",
-    transition: "background 0.2s",
-    whiteSpace: "nowrap",
-  },
-  dropdownItemHover: {
-    backgroundColor: "#f0f0f0",
   },
 };
 

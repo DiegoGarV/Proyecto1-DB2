@@ -17,8 +17,6 @@ const Post: React.FC<any> = ({
 }) => {
   const { data: user } = usePostUser(id);
 
-  console.warn("user: ", user);
-
   const [showComments, setShowComments] = useState<boolean>(false);
 
   const toggleComments = () => {
@@ -45,6 +43,7 @@ const Post: React.FC<any> = ({
         <PostActions
           calificacion={calificacion}
           commentPress={toggleComments}
+          postId={id}
         />
       </div>
       {showComments && (

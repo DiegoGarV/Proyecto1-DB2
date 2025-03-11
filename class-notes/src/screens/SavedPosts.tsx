@@ -3,12 +3,11 @@ import PostList from "../components/organisms/PostList";
 import Avatar from "../components/atoms/Avatar";
 import userImg from "../assets/usuario/DefaultUser.png";
 import { useSavedPosts } from "../services/api";
-import { useNavigate } from "react-router-dom";
+import DropDown from "../components/molecules/DropDown";
 
 const SavedPosts: React.FC = () => {
   const { data, isLoading, error } = useSavedPosts(40745258);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const navigate = useNavigate();
 
   return (
     <div style={styles.contenedor}>
@@ -28,16 +27,7 @@ const SavedPosts: React.FC = () => {
           >
             Options ▼
           </div>
-          {dropdownOpen && (
-            <div style={styles.dropdownMenu}>
-              <div
-                style={styles.dropdownItem}
-                onClick={() => navigate("/home")}
-              >
-                Home
-              </div>
-            </div>
-          )}
+          {dropdownOpen && <DropDown mainRoute="/saved-posts" />}
         </div>
       </div>
       <div style={styles.postCont}>
