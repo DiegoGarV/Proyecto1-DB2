@@ -1,25 +1,44 @@
 import React, { useState } from "react";
 import Button from "../atoms/Button";
+import axios from "axios";
 
 interface PostActionProps {
   calificacion: number;
   commentPress: () => void;
   likePress?: () => void;
-  sharePress?: () => void;
+  savePress?: () => void;
+  postId: number;
+  userId?: number;
 }
 
 const PostActions: React.FC<PostActionProps> = ({
   calificacion,
   commentPress,
   likePress,
-  sharePress,
+  savePress,
+  postId,
+  userId = 40745258,
 }) => {
   const [likes, setLikes] = useState<number>(calificacion);
   const [wasPressed, setWasPressed] = useState<boolean>(false);
-  const [hasShared, setHasShared] = useState<boolean>(false);
+  const [hasSaved, setHasSaved] = useState<boolean>(false);
 
-  const onSharePress = () => {
-    setHasShared(!hasShared);
+  const onSavePress = async () => {
+    try {
+      // Cambia el formato a query parameters en lugar de JSON body
+      const response = await axios.post(
+        `http://127.0.0.1:8000/save_post?user_id=${userId}&post_id=${postId}`
+      );
+
+      if (response.data && response.data.mensaje) {
+        setHasSaved(true); // ✅ Cambia el botón a "Saved!"
+      }
+    } catch (error) {
+      console.error("Error al guardar el post:", error);
+    }
+    if (savePress) {
+      savePress();
+    }
   };
 
   const onLikePress = () => {
@@ -28,6 +47,9 @@ const PostActions: React.FC<PostActionProps> = ({
       setLikes((prev) => prev + 1);
     } else {
       setLikes((prev) => prev - 1);
+    }
+    if (likePress) {
+      likePress();
     }
   };
 
@@ -68,9 +90,9 @@ const PostActions: React.FC<PostActionProps> = ({
         onClick={onCommentPress}
       ></Button>
       <Button
-        label={hasShared ? "✅ Saved!" : "💾 Save"}
+        label={hasSaved ? "✅ Saved!" : "💾 Save"}
         variant="secondary"
-        onClick={onSharePress}
+        onClick={onSavePress}
       ></Button>
     </div>
   );
