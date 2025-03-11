@@ -267,9 +267,15 @@ export const useCreatePost = () => {
  * Hook para reportar un post
  */
 export const useReportPost = () => {
+  const userId = localStorage.getItem("user_id");
+
   return useMutation({
     mutationFn: async (postId: number) => {
-      await axios.post(`${API_URL}/report_post`, { post_id: postId });
+      if (!userId) throw new Error("No hay usuario autenticado.");
+
+      await axios.post(
+        `${API_URL}/report_post?user_id=${userId}&post_id=${postId}`
+      );
     },
   });
 };

@@ -21,7 +21,7 @@ const Post: React.FC<any> = ({
   id,
 }) => {
   const { data: user } = usePostUser(id);
-  const { data: followedUsers } = useFollowedUsers(); // Usuarios seguidos
+  const { data: followedUsers } = useFollowedUsers();
   const followUser = useFollowUser();
   const reportPost = useReportPost();
 
