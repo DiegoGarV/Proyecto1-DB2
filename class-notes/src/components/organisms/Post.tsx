@@ -23,6 +23,8 @@ const Post: React.FC<any> = ({
     setShowComments(!showComments);
   };
 
+  console.warn(user);
+
   return (
     <div style={styles.container}>
       <div style={styles.header}>

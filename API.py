@@ -1808,4 +1808,34 @@ def get_saved_posts(user_id: int):
         return {"error": str(e)}
 
 
+@app.post("/save_post")
+def save_post(user_id: int, post_id: int):
+    try:
+        query = """
+        MATCH (u:Usuario {id: $user_id}), (p:Post {id: $post_id})
+        MERGE (u)-[r:INTERACTUÓ_POST]->(p)
+        SET r.guardó = TRUE
+        RETURN r, p
+        """
+
+        with db.session() as session:
+            result = session.run(query, user_id=user_id, post_id=post_id)
+
+            interaction = result.single()
+
+        if not interaction:
+            return {
+                "error": "No se pudo guardar el post. Verifica que el usuario y el post existan."
+            }
+
+        return {
+            "mensaje": "Post guardado exitosamente",
+            "post_id": post_id,
+            "guardó": interaction["r"]["guardó"],
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
+
+
 # Comando para ejecutar API: python -m uvicorn API:app --reload

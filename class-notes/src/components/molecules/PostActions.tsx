@@ -25,13 +25,12 @@ const PostActions: React.FC<PostActionProps> = ({
 
   const onSavePress = async () => {
     try {
-      // Cambia el formato a query parameters en lugar de JSON body
       const response = await axios.post(
         `http://127.0.0.1:8000/save_post?user_id=${userId}&post_id=${postId}`
       );
 
       if (response.data && response.data.mensaje) {
-        setHasSaved(true); // ✅ Cambia el botón a "Saved!"
+        setHasSaved(true);
       }
     } catch (error) {
       console.error("Error al guardar el post:", error);

@@ -4,19 +4,23 @@ import Avatar from "../components/atoms/Avatar";
 import userImg from "../assets/usuario/DefaultUser.png";
 import { usePosts } from "../services/api";
 import DropDown from "../components/molecules/DropDown";
+import { useNavigate } from "react-router-dom";
 
 const Home: React.FC = () => {
   const { data, isLoading, error } = usePosts();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <div style={styles.contenedor}>
       <div style={styles.header}>
         <div style={styles.userCont}>
-          <div style={styles.userImg}>
-            <Avatar src={userImg} size={50} />
+          <div style={styles.userBtn} onClick={() => navigate("/profile")}>
+            <div style={styles.userImg}>
+              <Avatar src={userImg} size={50} />
+            </div>
+            <div style={styles.userName}>Usuario</div>
           </div>
-          <div style={styles.userName}>Usuario</div>
         </div>
         <div style={styles.title}>Home</div>
         <div style={styles.optionsCont}>
@@ -67,6 +71,19 @@ const styles: Record<string, React.CSSProperties> = {
     alignContent: "center",
     alignItems: "center",
     gap: 10,
+  },
+  userBtn: {
+    display: "flex",
+    flexDirection: "row",
+    cursor: "pointer",
+    padding: "8px 12px",
+    backgroundColor: "#00796B",
+    color: "white",
+    borderRadius: "5px",
+    userSelect: "none",
+    justifyContent: "center",
+    alignContent: "center",
+    alignItems: "center",
   },
   title: {
     display: "flex",

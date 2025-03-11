@@ -122,3 +122,35 @@ export const useSavedPosts = (userId: number) => {
     enabled: !!userId,
   });
 };
+
+export const useFollowers = (userId: number) => {
+  return useQuery({
+    queryKey: ["followers", userId],
+    queryFn: async () => {
+      const { data } = await axios.get(`${API_URL}/getFollowers/${userId}`);
+      return data.followers;
+    },
+  });
+};
+
+export const useFollowing = (userId: number) => {
+  return useQuery({
+    queryKey: ["following", userId],
+    queryFn: async () => {
+      const { data } = await axios.get(`${API_URL}/getFollowed/${userId}`);
+      return data.followed;
+    },
+  });
+};
+
+const LOGGED_IN_USER_ID = 40745258;
+
+export const useLoggedInUser = () => {
+  return useQuery({
+    queryKey: ["loggedInUser", LOGGED_IN_USER_ID],
+    queryFn: async () => {
+      const { data } = await axios.get(`${API_URL}/user/${LOGGED_IN_USER_ID}`);
+      return data.usuario; // Ajusta esto según la estructura de la respuesta
+    },
+  });
+};
