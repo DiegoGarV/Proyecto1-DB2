@@ -111,3 +111,14 @@ export const useCreateReply = () => {
     },
   });
 };
+
+export const useSavedPosts = (userId: number) => {
+  return useQuery({
+    queryKey: ["savedPosts", userId],
+    queryFn: async () => {
+      const { data } = await axios.get(`${API_URL}/saved_posts/${userId}`);
+      return data.posts;
+    },
+    enabled: !!userId,
+  });
+};

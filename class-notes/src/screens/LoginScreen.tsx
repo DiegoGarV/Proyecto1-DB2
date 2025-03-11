@@ -14,7 +14,7 @@ const LoginScreen = () => {
     try {
       const response = await axios.post(`${API_URL}/login`, {
         email,
-        password,
+        password: password.toString(),
       });
       localStorage.setItem("user_id", response.data.user_id);
       navigate("/home");

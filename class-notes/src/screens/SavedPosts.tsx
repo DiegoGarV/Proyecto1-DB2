@@ -2,11 +2,11 @@ import React, { useState } from "react";
 import PostList from "../components/organisms/PostList";
 import Avatar from "../components/atoms/Avatar";
 import userImg from "../assets/usuario/DefaultUser.png";
-import { usePosts } from "../services/api";
+import { useSavedPosts } from "../services/api";
 import { useNavigate } from "react-router-dom";
 
-const Home: React.FC = () => {
-  const { data, isLoading, error } = usePosts();
+const SavedPosts: React.FC = () => {
+  const { data, isLoading, error } = useSavedPosts(40745258);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -19,8 +19,9 @@ const Home: React.FC = () => {
           </div>
           <div style={styles.userName}>Usuario</div>
         </div>
-        <div style={styles.title}>Home</div>
+        <div style={styles.title}>Saved Posts</div>
         <div style={styles.optionsCont}>
+          {" "}
           <div
             style={styles.optionsButton}
             onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -31,9 +32,9 @@ const Home: React.FC = () => {
             <div style={styles.dropdownMenu}>
               <div
                 style={styles.dropdownItem}
-                onClick={() => navigate("/saved-posts")}
+                onClick={() => navigate("/home")}
               >
-                Saved Posts
+                Home
               </div>
             </div>
           )}
@@ -121,4 +122,4 @@ const styles: Record<string, React.CSSProperties> = {
   },
 };
 
-export default Home;
+export default SavedPosts;

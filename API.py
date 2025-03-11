@@ -78,7 +78,7 @@ def login(user: UserLogin):
             MATCH (u:Usuario {correo: $email, id: $password}) RETURN u
             """,
             email=user.email,
-            password=user.password,
+            password=str(user.password),
         )
         if not result.single():
             raise HTTPException(status_code=401, detail="Credenciales incorrectas")
@@ -1772,6 +1772,37 @@ def get_comment_user(comment_id: int):
             }
         else:
             return {"error": "No se encontró el usuario que creó este comentario."}
+
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/saved_posts/{user_id}")
+def get_saved_posts(user_id: int):
+    try:
+        with db.session() as session:
+            result = session.run(
+                """
+                MATCH (u:Usuario {id: $user_id})-[r:INTERACTUÓ_POST {guardó: TRUE}]->(p:Post)
+                RETURN p.id AS id, p.título AS titulo, p.descripción AS descripcion, 
+                       p.fecha AS fecha, p.adjuntos AS archivos, p.calificación AS calificacion
+                """,
+                user_id=user_id,
+            )
+
+            saved_posts = [
+                {
+                    "id": record["id"],
+                    "titulo": record["titulo"],
+                    "descripcion": record["descripcion"],
+                    "fecha": record["fecha"],
+                    "archivos": record["archivos"],
+                    "calificacion": record["calificacion"],
+                }
+                for record in result
+            ]
+
+        return {"posts": saved_posts}
 
     except Exception as e:
         return {"error": str(e)}
