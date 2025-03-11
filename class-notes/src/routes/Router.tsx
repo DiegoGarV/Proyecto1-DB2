@@ -9,6 +9,7 @@ import Home from "../screens/Home";
 import Profile from "../screens/Profile";
 import LoginScreen from "../screens/LoginScreen";
 import SavedPosts from "../screens/SavedPosts";
+import CreatePost from "../screens/CreatePost";
 
 // const isAuthenticated = !!localStorage.getItem("user_id");
 const isAuthenticated = true;
@@ -26,6 +27,7 @@ const AppRouter: React.FC = () => (
         path="*"
         element={<Navigate to={isAuthenticated ? "/home" : "/login"} />}
       />
+      <Route path="/create-post" element={<CreatePost />} />
       <Route path="/saved-posts" element={<SavedPosts />} />
     </Routes>
   </Router>

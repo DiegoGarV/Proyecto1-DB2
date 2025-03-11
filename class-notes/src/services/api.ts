@@ -206,3 +206,45 @@ export const useUnfollowUser = () => {
     },
   });
 };
+
+export const useCreatePost = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      titulo,
+      descripcion,
+      archivos = [],
+      clase = "",
+      temas = [],
+      examen = false,
+      comunidad = 0,
+    }: {
+      titulo: string;
+      descripcion: string;
+      archivos?: string[];
+      clase?: string;
+      temas?: string[];
+      examen?: boolean;
+      comunidad?: number;
+    }) => {
+      const response = await axios.post(`${API_URL}/create_post`, null, {
+        params: {
+          user_id: LOGGED_IN_USER_ID,
+          titulo,
+          descripcion,
+          archivos: archivos.join(","),
+          clase,
+          temas: temas.join(","),
+          examen,
+          comunidad,
+        },
+      });
+
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+    },
+  });
+};

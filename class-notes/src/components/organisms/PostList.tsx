@@ -14,7 +14,16 @@ const PostList: React.FC<PostListProp> = ({ data, isLoading, error }) => {
   if (error) return <p>Error loading posts.</p>;
 
   const postToMap = data
-    ? [...data].sort(() => Math.random() - 0.5).slice(0, 10)
+    ? [...data]
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 10)
+        .map((post) => ({
+          ...post,
+          archivos:
+            typeof post.archivos === "string"
+              ? JSON.parse(post.archivos.replace(/'/g, '"'))
+              : post.archivos,
+        }))
     : [];
 
   // const postToMap = data ? data.slice(1, 2) : [];

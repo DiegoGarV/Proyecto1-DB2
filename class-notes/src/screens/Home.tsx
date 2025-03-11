@@ -1,10 +1,11 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import PostList from "../components/organisms/PostList";
 import Avatar from "../components/atoms/Avatar";
+import Button from "../components/atoms/Button"; // Importamos el botón
 import userImg from "../assets/usuario/DefaultUser.png";
 import { usePosts } from "../services/api";
 import DropDown from "../components/molecules/DropDown";
-import { useNavigate } from "react-router-dom";
 
 const Home: React.FC = () => {
   const { data, isLoading, error } = usePosts();
@@ -33,6 +34,13 @@ const Home: React.FC = () => {
           {dropdownOpen && <DropDown />}
         </div>
       </div>
+      <div style={styles.buttonContainer}>
+        <Button
+          label="Nuevo Post"
+          variant="primary"
+          onClick={() => navigate("/create-post")}
+        />
+      </div>
       <div style={styles.postCont}>
         <PostList data={data} isLoading={isLoading} error={error} />
       </div>
@@ -55,6 +63,11 @@ const styles: Record<string, React.CSSProperties> = {
     width: "100%",
     backgroundColor: "#009688",
   },
+  buttonContainer: {
+    display: "flex",
+    justifyContent: "center",
+    margin: "20px 0",
+  },
   postCont: {
     display: "flex",
     width: "100%",
@@ -63,7 +76,6 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     backgroundColor: "#FAFAFA",
   },
-  userName: {},
   userCont: {
     display: "flex",
     width: "33%",
