@@ -2,8 +2,13 @@ import React, { useState } from "react";
 import PostHeader from "../molecules/PostHeader";
 import PostActions from "../molecules/PostActions";
 import PostArchives from "../molecules/PostArchives";
-import { usePostUser } from "../../services/api";
 import CommentsList from "./CommentList";
+import {
+  usePostUser,
+  useFollowUser,
+  useReportPost,
+  useFollowedUsers,
+} from "../../services/api";
 
 const Post: React.FC<any> = ({
   username,
@@ -16,19 +21,52 @@ const Post: React.FC<any> = ({
   id,
 }) => {
   const { data: user } = usePostUser(id);
+  const { data: followedUsers } = useFollowedUsers(); // Usuarios seguidos
+  const followUser = useFollowUser();
+  const reportPost = useReportPost();
 
   const [showComments, setShowComments] = useState<boolean>(false);
+  const [menuOpen, setMenuOpen] = useState<boolean>(false);
 
-  const toggleComments = () => {
-    setShowComments(!showComments);
+  const toggleComments = () => setShowComments(!showComments);
+  const toggleMenu = () => setMenuOpen(!menuOpen);
+
+  // Verificar si ya sigues al usuario del post
+  const isFollowing = followedUsers?.some((u: any) => u.id === user?.id);
+
+  const handleFollow = () => {
+    if (user && !isFollowing) {
+      followUser.mutate(user.id);
+      setMenuOpen(false);
+    }
   };
 
-  console.warn(user);
+  const handleReport = () => {
+    reportPost.mutate(id);
+    setMenuOpen(false);
+  };
 
   return (
     <div style={styles.container}>
       <div style={styles.header}>
         <PostHeader username={user?.nombre} avatar={avatar} date={date} />
+        {/* Botón de menú ⋮ */}
+        <div style={styles.menuContainer}>
+          <button onClick={toggleMenu} style={styles.menuButton}>
+            ⋮
+          </button>
+          {menuOpen && (
+            <div style={styles.menu}>
+              <button
+                onClick={handleFollow}
+                disabled={isFollowing || followUser.isPending}
+              >
+                {isFollowing ? "Siguiendo" : "Seguir Usuario"}
+              </button>
+              <button onClick={handleReport}>Reportar Post</button>
+            </div>
+          )}
+        </div>
       </div>
       <div style={styles.content}>
         <div style={styles.titleCont}>{title}</div>
@@ -80,9 +118,9 @@ const styles: Record<string, React.CSSProperties> = {
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     backgroundColor: "#00796B",
-    justifyContent: "flex-start",
-    alignContent: "center",
+    justifyContent: "space-between",
     alignItems: "center",
+    padding: "10px",
   },
   content: {
     display: "flex",
@@ -92,7 +130,6 @@ const styles: Record<string, React.CSSProperties> = {
     width: "90%",
     backgroundColor: "white",
     flexDirection: "column",
-    // backgroundColor: "green",
     gap: 10,
   },
   postActions: {
@@ -105,15 +142,26 @@ const styles: Record<string, React.CSSProperties> = {
     paddingTop: 10,
     paddingBottom: 10,
   },
-
-  archiveText: {
+  menuContainer: {
+    position: "relative",
+  },
+  menuButton: {
+    background: "none",
+    border: "none",
+    fontSize: "20px",
+    cursor: "pointer",
+    color: "white",
+  },
+  menu: {
+    position: "absolute",
+    top: "25px",
+    right: 0,
+    backgroundColor: "white",
+    boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
+    borderRadius: 5,
     display: "flex",
-    textOverflow: "ellipsis",
-    alignSelf: "center",
-    justifyContent: "center",
-    justifySelf: "center",
-    whiteSpace: "nowrap",
-    overflow: "hidden",
+    flexDirection: "column",
+    zIndex: 10,
   },
   commentDivisor: {
     width: "100%",

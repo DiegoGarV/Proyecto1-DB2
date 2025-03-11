@@ -154,6 +154,7 @@ export const useFollowing = () => {
 
 export const useLoggedInUser = () => {
   const userId = getUserId();
+  // const userId = 87171272;
   return useQuery({
     queryKey: ["loggedInUser", userId],
     queryFn: async () => {
@@ -258,6 +259,17 @@ export const useCreatePost = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
+    },
+  });
+};
+
+/**
+ * Hook para reportar un post
+ */
+export const useReportPost = () => {
+  return useMutation({
+    mutationFn: async (postId: number) => {
+      await axios.post(`${API_URL}/report_post`, { post_id: postId });
     },
   });
 };
