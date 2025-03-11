@@ -22,13 +22,12 @@ const Comment: React.FC<CommentsProps> = ({ content, id }) => {
   const createReplyMutation = useCreateReply();
 
   const [newReply, setNewReply] = useState<string>("");
-  const userId = 40745258;
 
   const handleCreateReply = () => {
     if (!newReply.trim()) return;
 
     createReplyMutation.mutate(
-      { user_id: userId, comentario_post_id: id, contenido: newReply },
+      { comentario_post_id: id, contenido: newReply },
       {
         onSuccess: () => {
           setNewReply("");

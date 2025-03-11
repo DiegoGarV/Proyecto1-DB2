@@ -17,7 +17,7 @@ const PostActions: React.FC<PostActionProps> = ({
   likePress,
   savePress,
   postId,
-  userId = 40745258,
+  userId,
 }) => {
   const [likes, setLikes] = useState<number>(calificacion);
   const [wasPressed, setWasPressed] = useState<boolean>(false);

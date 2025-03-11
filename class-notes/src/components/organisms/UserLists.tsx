@@ -3,30 +3,33 @@ import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import UserDisplay from "../molecules/UserDisplay";
 
-const LOGGED_IN_USER_ID = 40745258;
-
 interface UserListProps {
-  type: "followers" | "following"; // Indica qué lista mostrar
+  type: "followers" | "following";
 }
 
-const fetchUsers = async (type: "followers" | "following") => {
+const getUserId = () => localStorage.getItem("user_id") || "";
+
+const fetchUsers = async (type: "followers" | "following", userId: string) => {
+  if (!userId) throw new Error("No hay usuario autenticado.");
+
   const endpoint =
-    type === "followers"
-      ? `/getFollowers/${LOGGED_IN_USER_ID}`
-      : `/getFollowed/${LOGGED_IN_USER_ID}`;
+    type === "followers" ? `/getFollowers/${userId}` : `/getFollowed/${userId}`;
 
   const { data } = await axios.get(`http://127.0.0.1:8000${endpoint}`);
   return data.followers || data.followed || [];
 };
 
 const UserList: React.FC<UserListProps> = ({ type }) => {
+  const userId = getUserId();
+
   const {
     data: users,
     isLoading,
     error,
   } = useQuery({
-    queryKey: [type, LOGGED_IN_USER_ID],
-    queryFn: () => fetchUsers(type),
+    queryKey: [type, userId],
+    queryFn: () => fetchUsers(type, userId),
+    enabled: !!userId,
   });
 
   if (isLoading) return <p>Cargando {type}...</p>;

@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 import uuid
 
+
 app = FastAPI()
 
 app.add_middleware(
@@ -40,34 +41,6 @@ class UserSignup(BaseModel):
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
-
-
-def create_user(tx, email, name):
-    user_id = str(uuid.uuid4())[:8]
-    result = tx.run(
-        """
-        MERGE (u:Usuario {correo: $email})
-        ON CREATE SET u.nombre_usuario = $name, u.id = $id
-        RETURN u.id
-        """,
-        email=email,
-        name=name,
-        id=user_id,
-    )
-    return result.single()[0] if result.single() else None
-
-
-@app.post("/register")
-def register(user: UserSignup):
-    with db.session() as session:
-        existing_user = session.run(
-            "MATCH (u:Usuario {correo: $email}) RETURN u", email=user.email
-        )
-        if existing_user.single():
-            raise HTTPException(status_code=400, detail="El correo ya está registrado")
-
-        user_id = session.write_transaction(create_user, user.email, user.name)
-        return {"message": "Usuario creado exitosamente", "id": user_id}
 
 
 @app.post("/login")
@@ -422,23 +395,25 @@ def get_postsInCommunity(community_id: int):
         return {"error": str(e)}
 
 
-@app.post("/create_user")
-def create_user(
-    cursos_llevados: List[str],
-    cursos_actuales: List[str],
-    correo: str,
-    nombre_usuario: str,
-    contraseña: str,
-    beca: bool,
-):
-    try:
+class UserCreate(BaseModel):
+    cursos_llevados: Optional[List[str]] = []
+    cursos_actuales: Optional[List[str]] = []
+    correo: str
+    nombre_usuario: str
+    contraseña: str
+    beca: bool
 
+
+@app.post("/create_user")
+def create_user(user: UserCreate):
+    try:
         user_id = int(str(uuid4().int)[:8], 16)
 
         with db.session() as session:
             session.run(
                 "MATCH (counter:IDCounter) SET counter.id = $user_id", user_id=user_id
             )
+
         query = """
         CREATE (u:Usuario {
             id: $user_id,
@@ -455,12 +430,12 @@ def create_user(
             result = session.run(
                 query,
                 user_id=user_id,
-                cursos_llevados=cursos_llevados,
-                cursos_actuales=cursos_actuales,
-                correo=correo,
-                nombre_usuario=nombre_usuario,
-                contraseña=contraseña,
-                beca=beca,
+                cursos_llevados=user.cursos_llevados,
+                cursos_actuales=user.cursos_actuales,
+                correo=user.correo,
+                nombre_usuario=user.nombre_usuario,
+                contraseña=user.contraseña,
+                beca=user.beca,
             )
             created_user = result.single()
 

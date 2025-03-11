@@ -6,7 +6,7 @@ import { useSavedPosts } from "../services/api";
 import DropDown from "../components/molecules/DropDown";
 
 const SavedPosts: React.FC = () => {
-  const { data, isLoading, error } = useSavedPosts(40745258);
+  const { data, isLoading, error } = useSavedPosts();
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   return (

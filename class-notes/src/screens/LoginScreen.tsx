@@ -4,28 +4,50 @@ import axios from "axios";
 
 const API_URL = "http://127.0.0.1:8000";
 
-const LoginScreen = () => {
+const RegisterScreen = () => {
   const [email, setEmail] = useState("");
+  const [nombreUsuario, setNombreUsuario] = useState("");
   const [password, setPassword] = useState("");
+  const [cursosLlevados, setCursosLlevados] = useState<string[]>([]);
+  const [cursosActuales, setCursosActuales] = useState<string[]>([]);
+  const [beca, setBeca] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const handleLogin = async () => {
+  const handleRegister = async () => {
     try {
-      const response = await axios.post(`${API_URL}/login`, {
-        email,
-        password: password.toString(),
+      const payload = {
+        correo: email,
+        nombre_usuario: nombreUsuario,
+        contraseña: password,
+        cursos_llevados: cursosLlevados,
+        cursos_actuales: cursosActuales,
+        beca,
+      };
+
+      console.log("Enviando datos:", payload);
+
+      const response = await axios.post(`${API_URL}/create_user`, payload, {
+        headers: { "Content-Type": "application/json" },
       });
-      localStorage.setItem("user_id", response.data.user_id);
+
+      localStorage.setItem("user_id", response.data.usuario.id);
       navigate("/home");
     } catch (error) {
-      setError("Credenciales incorrectas");
+      console.error("Error en el registro:", error);
+      setError("Error al registrar usuario. Inténtalo de nuevo.");
     }
   };
 
   return (
     <div style={styles.container}>
-      <h2>Iniciar Sesión</h2>
+      <h2>Crear Usuario</h2>
+      <input
+        type="text"
+        placeholder="Nombre de Usuario"
+        value={nombreUsuario}
+        onChange={(e) => setNombreUsuario(e.target.value)}
+      />
       <input
         type="email"
         placeholder="Correo"
@@ -34,11 +56,29 @@ const LoginScreen = () => {
       />
       <input
         type="password"
-        placeholder="Contraseña (ID)"
+        placeholder="Contraseña"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
       />
-      <button onClick={handleLogin}>Ingresar</button>
+      <input
+        type="text"
+        placeholder="Cursos Llevados (separados por comas)"
+        onChange={(e) => setCursosLlevados(e.target.value.split(","))}
+      />
+      <input
+        type="text"
+        placeholder="Cursos Actuales (separados por comas)"
+        onChange={(e) => setCursosActuales(e.target.value.split(","))}
+      />
+      <label>
+        <input
+          type="checkbox"
+          checked={beca}
+          onChange={(e) => setBeca(e.target.checked)}
+        />
+        ¿Tienes beca?
+      </label>
+      <button onClick={handleRegister}>Registrar</button>
       {error && <p style={{ color: "red" }}>{error}</p>}
     </div>
   );
@@ -47,15 +87,11 @@ const LoginScreen = () => {
 const styles: Record<string, React.CSSProperties> = {
   container: {
     display: "flex",
-    width: "100%",
-    height: "100%",
     flexDirection: "column",
     justifyContent: "center",
-    alignContent: "center",
     alignItems: "center",
-    alignSelf: "center",
-    justifySelf: "center",
+    height: "100vh",
   },
 };
 
-export default LoginScreen;
+export default RegisterScreen;

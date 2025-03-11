@@ -20,13 +20,12 @@ const CommentsList: React.FC<CommentsListProps> = ({ postId }) => {
   console.warn("Post id", postId);
 
   const [newComment, setNewComment] = useState<string>("");
-  const userId = 40745258;
 
   const handleCreateComment = () => {
     if (!newComment.trim()) return;
 
     createCommentMutation.mutate(
-      { userId, postId, content: newComment },
+      { postId, content: newComment },
       {
         onSuccess: (newCommentResponse) => {
           setNewComment("");

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -7,30 +7,45 @@ import {
 } from "react-router-dom";
 import Home from "../screens/Home";
 import Profile from "../screens/Profile";
-import LoginScreen from "../screens/LoginScreen";
+import RegisterScreen from "../screens/LoginScreen";
 import SavedPosts from "../screens/SavedPosts";
 import CreatePost from "../screens/CreatePost";
 
-// const isAuthenticated = !!localStorage.getItem("user_id");
-const isAuthenticated = true;
+const AppRouter: React.FC = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    !!localStorage.getItem("user_id")
+  );
 
-const AppRouter: React.FC = () => (
-  <Router>
-    <Routes>
-      <Route path="/profile" element={<Profile />} />
-      <Route path="/login" element={<LoginScreen />} />
-      <Route
-        path="/home"
-        element={isAuthenticated ? <Home /> : <Navigate to="/login" />}
-      />
-      <Route
-        path="*"
-        element={<Navigate to={isAuthenticated ? "/home" : "/login"} />}
-      />
-      <Route path="/create-post" element={<CreatePost />} />
-      <Route path="/saved-posts" element={<SavedPosts />} />
-    </Routes>
-  </Router>
-);
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setIsAuthenticated(!!localStorage.getItem("user_id"));
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, []);
+
+  return (
+    <Router>
+      <Routes>
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/login" element={<RegisterScreen />} />
+        <Route
+          path="/home"
+          element={isAuthenticated ? <Home /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="*"
+          element={<Navigate to={isAuthenticated ? "/home" : "/login"} />}
+        />
+        <Route path="/create-post" element={<CreatePost />} />
+        <Route path="/saved-posts" element={<SavedPosts />} />
+      </Routes>
+    </Router>
+  );
+};
 
 export default AppRouter;
