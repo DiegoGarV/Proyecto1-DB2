@@ -506,7 +506,7 @@ def create_post(
             descripcion: $descripcion,
             archivos: $archivos,
             calificacion: 0,
-            status: TRUE
+            status: "TRUE"
         })
         WITH p
         MATCH (u:Usuario {id: $user_id})
@@ -766,7 +766,7 @@ def create_comentario(user_id: int, post_id: int, contenido: str):
             contenido: $contenido,
             likes: 0,
             fecha: datetime($fecha),
-            status: TRUE
+            status: "TRUE"
         })
         CREATE (u)-[r:CREÓ_COMENTARIO]->(c)
         SET r.fecha = $fecha, r.editado = FALSE, r.longitud = $longitud
@@ -826,7 +826,7 @@ def create_reply(user_id: int, comentario_post_id: int, contenido: str):
             contenido: $contenido,
             likes: 0,
             fecha: datetime($fecha),
-            status: TRUE
+            status: "TRUE"
         })
         CREATE (u)-[r:CREÓ_COMENTARIO]->(c)
         SET r.fecha = $fecha, r.editado = FALSE, r.longitud = $longitud
