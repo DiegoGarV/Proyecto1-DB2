@@ -31,7 +31,6 @@ const Post: React.FC<any> = ({
   const toggleComments = () => setShowComments(!showComments);
   const toggleMenu = () => setMenuOpen(!menuOpen);
 
-  // Verificar si ya sigues al usuario del post
   const isFollowing = followedUsers?.some((u: any) => u.id === user?.id);
 
   const handleFollow = () => {

@@ -8,7 +8,7 @@ interface PostActionProps {
   likePress?: () => void;
   savePress?: () => void;
   postId: number;
-  userId?: number;
+  userId?: number; // Puede venir como prop o ser obtenido desde localStorage
 }
 
 const PostActions: React.FC<PostActionProps> = ({
@@ -23,10 +23,24 @@ const PostActions: React.FC<PostActionProps> = ({
   const [wasPressed, setWasPressed] = useState<boolean>(false);
   const [hasSaved, setHasSaved] = useState<boolean>(false);
 
+  const loggedInUserId = userId ?? localStorage.getItem("user_id");
+
   const onSavePress = async () => {
+    if (!loggedInUserId) {
+      console.error("Error: No hay usuario autenticado.");
+      return;
+    }
+
     try {
       const response = await axios.post(
-        `http://127.0.0.1:8000/save_post?user_id=${userId}&post_id=${postId}`
+        `http://127.0.0.1:8000/save_post`,
+        null,
+        {
+          params: {
+            user_id: loggedInUserId,
+            post_id: postId,
+          },
+        }
       );
 
       if (response.data && response.data.mensaje) {
@@ -42,18 +56,8 @@ const PostActions: React.FC<PostActionProps> = ({
 
   const onLikePress = () => {
     setWasPressed(!wasPressed);
-    if (!wasPressed) {
-      setLikes((prev) => prev + 1);
-    } else {
-      setLikes((prev) => prev - 1);
-    }
-    if (likePress) {
-      likePress();
-    }
-  };
-
-  const onCommentPress = () => {
-    commentPress();
+    setLikes((prev) => (wasPressed ? prev - 1 : prev + 1));
+    if (likePress) likePress();
   };
 
   return (
@@ -86,7 +90,7 @@ const PostActions: React.FC<PostActionProps> = ({
       <Button
         label="Comment"
         variant="secondary"
-        onClick={onCommentPress}
+        onClick={commentPress}
       ></Button>
       <Button
         label={hasSaved ? "✅ Saved!" : "💾 Save"}

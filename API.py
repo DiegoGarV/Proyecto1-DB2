@@ -1190,14 +1190,10 @@ def like_comment(user_id: int, comentario_id: int):
         return {"error": str(e)}
 
 
-class ReportPostRequest(BaseModel):
-    user_id: int
-    post_id: int
-
-
 @app.post("/report_post")
-def report_post(request: ReportPostRequest):
+def report_post(user_id: int, post_id: int):
     try:
+
         query = """
         MATCH (u:Usuario {id: $user_id}), (p:Post {id: $post_id})
         MERGE (u)-[r:INTERACTUÓ_POST]->(p)
@@ -1206,9 +1202,8 @@ def report_post(request: ReportPostRequest):
         """
 
         with db.session() as session:
-            result = session.run(
-                query, user_id=request.user_id, post_id=request.post_id
-            )
+            result = session.run(query, user_id=user_id, post_id=post_id)
+
             interaction = result.single()
 
         if not interaction:
@@ -1218,7 +1213,7 @@ def report_post(request: ReportPostRequest):
 
         return {
             "mensaje": "Post reportado exitosamente",
-            "post_id": request.post_id,
+            "post_id": post_id,
             "reportó": interaction["r"]["reportó"],
         }
 
