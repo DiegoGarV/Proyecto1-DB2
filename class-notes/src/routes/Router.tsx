@@ -10,6 +10,7 @@ import Profile from "../screens/Profile";
 import RegisterScreen from "../screens/LoginScreen";
 import SavedPosts from "../screens/SavedPosts";
 import CreatePost from "../screens/CreatePost";
+import Communities from "../screens/Community";
 
 const AppRouter: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(
@@ -43,6 +44,7 @@ const AppRouter: React.FC = () => {
         />
         <Route path="/create-post" element={<CreatePost />} />
         <Route path="/saved-posts" element={<SavedPosts />} />
+        <Route path="/communities" element={<Communities />} />
       </Routes>
     </Router>
   );

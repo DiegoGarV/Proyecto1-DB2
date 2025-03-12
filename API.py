@@ -1345,37 +1345,28 @@ def rate_post(user_id: int, post_id: int):
         return {"error": str(e)}
 
 
+class JoinCommunityRequest(BaseModel):
+    user_id: int
+    community_id: int
+
+
 @app.post("/join_community")
-def join_community(user_id: int, community_id: int):
+def join_community(request: JoinCommunityRequest):
     try:
-        fecha = datetime.utcnow().isoformat()
-
-        query = """
-        MATCH (u:Usuario {id: $user_id}), (c:Comunidades {id: $community_id})
-        MERGE (u)-[r:PERTENECE_A_COMUNIDAD]->(c)
-        ON CREATE SET r.fecha = datetime($fecha), r.rol = "participante", r.estado = "activo"
-        RETURN r
-        """
-
         with db.session() as session:
-            result = session.run(
-                query, user_id=user_id, community_id=community_id, fecha=fecha
+            session.run(
+                """
+                MATCH (u:Usuario {id: $user_id}), (c:Comunidades {id: $community_id})
+                MERGE (u)-[r:PERTENECE_COMUNIDAD]->(c)
+                SET r.existe = TRUE
+                RETURN u, c
+                """,
+                user_id=request.user_id,
+                community_id=request.community_id,
             )
-
-            created_relationship = result.single()
-
-        if not created_relationship:
-            return {
-                "error": "No se pudo unir a la comunidad. Verifica que el usuario y la comunidad existan."
-            }
-
-        return {
-            "mensaje": "Usuario unido a la comunidad exitosamente",
-            "relacion": {"fecha": fecha, "rol": "participante", "estado": "activo"},
-        }
-
+        return {"mensaje": "Unido a la comunidad exitosamente"}
     except Exception as e:
-        return {"error": str(e)}
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/report_community")
@@ -1815,6 +1806,48 @@ def save_post(user_id: int, post_id: int):
             "guardó": interaction["r"]["guardó"],
         }
 
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/available_communities")
+def get_available_communities():
+    try:
+        with db.session() as session:
+            result = session.run(
+                """
+                MATCH (c:Comunidades)
+                RETURN c.id AS id, c.nombre AS name
+                """
+            )
+            communities = [
+                {"id": record["id"], "name": record["name"]} for record in result
+            ]
+
+        return {"communities": communities}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/user_communities/{user_id}")
+def get_user_communities(user_id: int):
+    try:
+        with db.session() as session:
+            result = session.run(
+                """
+                MATCH (u:Usuario {id: $user_id})-[:PERTENECE_COMUNIDAD]->(c:Comunidades)
+                RETURN c.id AS id, c.nombre AS name
+                """,
+                user_id=user_id,
+            )
+            communities = [
+                {"id": record["id"], "name": record["name"]} for record in result
+            ]
+
+        if not communities:
+            return {"message": "El usuario no pertenece a ninguna comunidad."}
+
+        return {"communities": communities}
     except Exception as e:
         return {"error": str(e)}
 

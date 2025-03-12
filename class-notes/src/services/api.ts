@@ -263,9 +263,6 @@ export const useCreatePost = () => {
   });
 };
 
-/**
- * Hook para reportar un post
- */
 export const useReportPost = () => {
   const userId = localStorage.getItem("user_id");
 
@@ -276,6 +273,85 @@ export const useReportPost = () => {
       await axios.post(
         `${API_URL}/report_post?user_id=${userId}&post_id=${postId}`
       );
+    },
+  });
+};
+
+export const useJoinedCommunities = () => {
+  const userId = Number(localStorage.getItem("user_id"));
+
+  return useQuery({
+    queryKey: ["joinedCommunities", userId],
+    queryFn: async () => {
+      if (!userId) throw new Error("No hay usuario autenticado.");
+
+      const { data } = await axios.get(`${API_URL}/user_communities/${userId}`);
+
+      return data?.communities ?? [];
+    },
+    enabled: !!userId,
+  });
+};
+
+export const useJoinCommunity = () => {
+  const queryClient = useQueryClient();
+  const userId = Number(localStorage.getItem("user_id"));
+
+  return useMutation({
+    mutationFn: async (communityId: number) => {
+      if (!userId) throw new Error("No hay usuario autenticado.");
+
+      await axios.post(`${API_URL}/join_community`, {
+        user_id: userId,
+        community_id: communityId,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["joinedCommunities", userId],
+      });
+    },
+  });
+};
+
+const userId = localStorage.getItem("user_id");
+
+export const useLeaveCommunity = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (communityId: number) => {
+      if (!userId) throw new Error("No hay usuario autenticado.");
+      await axios.post(`${API_URL}/leave_community`, {
+        user_id: userId,
+        community_id: communityId,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["joinedCommunities", userId],
+      });
+    },
+  });
+};
+
+export const useReportCommunity = () => {
+  return useMutation({
+    mutationFn: async (communityId: number) => {
+      if (!userId) throw new Error("No hay usuario autenticado.");
+      await axios.post(`${API_URL}/report_community`, {
+        user_id: userId,
+        community_id: communityId,
+      });
+    },
+  });
+};
+
+export const useCommunities = () => {
+  return useQuery({
+    queryKey: ["communities"],
+    queryFn: async () => {
+      const { data } = await axios.get(`${API_URL}/available_communities`);
+      return data.communities;
     },
   });
 };

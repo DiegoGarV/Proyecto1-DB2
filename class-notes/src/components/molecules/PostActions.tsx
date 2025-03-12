@@ -8,7 +8,7 @@ interface PostActionProps {
   likePress?: () => void;
   savePress?: () => void;
   postId: number;
-  userId?: number; // Puede venir como prop o ser obtenido desde localStorage
+  userId?: number;
 }
 
 const PostActions: React.FC<PostActionProps> = ({

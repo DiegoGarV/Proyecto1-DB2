@@ -6,13 +6,17 @@ interface DropDownProps {
 
 const DropDown: React.FC<DropDownProps> = ({ mainRoute = "/home" }) => {
   const navigate = useNavigate();
-  const route = mainRoute === "/home" ? "/saved-posts" : "/home";
-  const title = mainRoute === "/home" ? "Saved Posts" : "Home";
 
   return (
     <div style={styles.dropdownMenu}>
-      <div style={styles.dropdownItem} onClick={() => navigate(route)}>
-        {title}
+      <div style={styles.dropdownItem} onClick={() => navigate("/saved-posts")}>
+        Saved Posts
+      </div>
+      <div style={styles.dropdownItem} onClick={() => navigate("/communities")}>
+        Comunidades
+      </div>
+      <div style={styles.dropdownItem} onClick={() => navigate("/home")}>
+        Home
       </div>
     </div>
   );
